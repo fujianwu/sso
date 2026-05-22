@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 — SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .about-hero {
+            padding: 5rem 1.5rem 3rem;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .about-hero-label {
+            font-family: var(--font-display);
+            font-size: 0.62rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+        .about-hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-color) 70%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        .about-hero p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .about-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .about-section { margin-bottom: 3.5rem; }
+
+        .section-heading {
+            font-family: var(--font-display);
+            font-size: 0.65rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-heading::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-light), transparent);
+        }
+
+        .about-text {
+            color: var(--text-secondary);
+            line-height: 1.85;
+            font-size: 0.95rem;
+        }
+        .about-text p { margin-bottom: 1rem; }
+        .about-text p:last-child { margin-bottom: 0; }
+
+        /* 时间线 */
+        .timeline { position: relative; padding-left: 2rem; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px; top: 8px; bottom: 8px;
+            width: 1px;
+            background: linear-gradient(180deg, var(--primary-color), var(--accent-color), transparent);
+            opacity: 0.4;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .timeline-item:last-child { margin-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: -1.75rem;
+            top: 4px;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0,229,255,0.6);
+            border: 2px solid var(--bg-primary);
+        }
+        .timeline-date {
+            font-family: var(--font-display);
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--primary-color);
+            margin-bottom: 0.4rem;
+        }
+        .timeline-content {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .timeline-content strong {
+            display: block;
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        /* 技术栈标签 */
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .tech-tag {
+            padding: 0.3rem 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            border-radius: var(--radius-sm);
+            background: rgba(0,229,255,0.06);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: var(--primary-color);
+        }
+
+        /* 价值观卡片 */
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .value-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            transition: all 0.25s;
+        }
+        .value-card:hover {
+            border-color: var(--border-light);
+            box-shadow: 0 8px 24px rgba(0,229,255,0.08);
+        }
+        .value-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-display);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 0.6rem;
+        }
+        .value-card-title svg { width: 15px; height: 15px; }
+        .value-card p { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+
+    <div class="about-hero">
+        <div class="about-hero-label">Open Source · Personal Project</div>
+        <h1>关于本项目</h1>
+        <p>一个从零搭建的 SSO 认证系统，记录从想法到落地的完整过程。</p>
+    </div>
+
+    <div class="about-container">
+
+        <!-- 项目简介 -->
+        <section class="about-section">
+            <div class="section-heading">项目背景</div>
+            <div class="about-text">
+                <p>
+                    这是一个个人开发的单点登录（SSO）平台，起因是我在同时维护几个小工具和服务时，
+                    每个都要单独处理登录逻辑，重复且难以维护。于是决定自己造一个轮子，
+                    顺便深入理解 OAuth 2.0 的工作原理。
+                </p>
+                <p>
+                    整个系统从 2025 年 12 月初开始动工，到 2026 年 1 月基本成型，
+                    此后持续打磨细节——修 Bug、加功能、改界面，一直迭代到现在。
+                    麻雀虽小，但 SSO 该有的核心能力都有：OAuth 2.0 授权码流程、MFA、
+                    异常登录检测、多会话管理、管理员后台，一个不少。
+                </p>
+            </div>
+        </section>
+
+        <!-- 发展历程 -->
+        <section class="about-section">
+            <div class="section-heading">开发历程</div>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2025 年 12 月初</div>
+                    <div class="timeline-content">
+                        <strong>项目启动</strong>
+                        用 FastAPI + SQLite 搭起基础框架，实现最简单的邮箱密码登录和 session 管理。
+                        定下整体架构方向：纯后端渲染的 Jinja2 模板 + REST API 双轨并行。
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2025 年 12 月中旬</div>
+                    <div class="timeline-content">
+                        <strong>OAuth 2.0 核心完成</strong>
+                        实现完整的授权码流程（Authorization Code Flow），支持 client_id / client_secret
+                        注册、scope 精细化控制、access token 与 refresh token 管理。
+                        写了第一版 Python SDK 和 Flask 接入示例。
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2025 年 12 月下旬 — 2026 年 1 月</div>
+                    <div class="timeline-content">
+                        <strong>安全能力堆叠</strong>
+                        陆续加入 TOTP 多因素认证（MFA）、设备指纹信任机制（30 天免验证）、
+                        异常登录检测（IP 变化、UA 异常触发强制 MFA）、审计日志、
+                        手机验证码登录、多会话管理与强制下线。
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-date">2026 年 1 月 — 至今</div>
+                    <div class="timeline-content">
+                        <strong>持续迭代</strong>
+                        补全管理员后台功能（用户管理、应用审计、自定义字段、白名单控制），
+                        重构前端界面，修复 Cookie 安全属性，优化限流和性能监控。
+                        一边用一边改，目前运行稳定。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 技术栈 -->
+        <section class="about-section">
+            <div class="section-heading">技术栈</div>
+            <div class="about-text">
+                <p>选型原则是轻量、够用、不过度工程化。</p>
+            </div>
+            <div class="tech-tags">
+                <span class="tech-tag">Python 3.11</span>
+                <span class="tech-tag">FastAPI</span>
+                <span class="tech-tag">SQLite</span>
+                <span class="tech-tag">Jinja2</span>
+                <span class="tech-tag">bcrypt</span>
+                <span class="tech-tag">PyJWT</span>
+                <span class="tech-tag">pyotp (TOTP)</span>
+                <span class="tech-tag">OAuth 2.0</span>
+                <span class="tech-tag">Lucide Icons</span>
+            </div>
+        </section>
+
+        <!-- 设计理念 -->
+        <section class="about-section">
+            <div class="section-heading">设计理念</div>
+            <div class="values-grid">
+                <div class="value-card">
+                    <div class="value-card-title"><i data-lucide="shield"></i> 安全优先</div>
+                    <p>从 Cookie 属性到密码策略，每个细节都尽量安全。没有银弹，但能做的都做。</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-card-title"><i data-lucide="zap"></i> 接入简单</div>
+                    <p>提供 Python SDK 和完整文档，接入一个新应用的成本尽量压到最低。</p>
+                </div>
+                <div class="value-card">
+                    <div class="value-card-title"><i data-lucide="wrench"></i> 自己用得上</div>
+                    <p>所有功能都是因为自己需要才加进来的，不做没用的。功能少但每个都管用。</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    {% include "footer.html" %}
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+/* 优化后的样式 - 增强视觉效果和减少弹窗 */
+
+/* 卡片样式增强 */
+.card {
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* 表单元素优化 */
+.form-input {
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+/* 按钮样式优化 */
+.btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: #4338ca;
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+}
+
+/* 内联提示代替弹窗 */
+.inline-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: none;
+}
+
+.inline-alert.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Toast通知样式 */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.toast {
+    padding: 12px 20px;
+    background-color: #111827;
+    color: white;
+    border-radius: 8px;
+    margin-top: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 3s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; visibility: hidden; }
+}
+
+/* 减少弹窗相关样式 */
+.modal {
+    display: none; /* 默认隐藏模态框 */
+}
+
+/* 优化账户选择项 */
+.account-item {
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.account-item.active {
+    border-color: #4f46e5;
+    background-color: rgba(79, 70, 229, 0.05);
+}
+
+/* 优化按钮组间距 */
+.btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}

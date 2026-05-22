@@ -1,0 +1,188 @@
+"""
+Flask SSO 客户端 SDK - 修复版本
+"""
+import requests
+from functools import wraps
+from flask import redirect, request, session, Flask
+from typing import Optional, Callable
+from urllib.parse import urlencode
+import secrets
+
+
+class SSOError(Exception):
+    """SSO 相关异常。"""
+
+class FlaskSSOClient:
+    """Flask SSO 客户端"""
+
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        auth_server: str,
+        redirect_uri: str,
+        scope: str = "openid profile email",
+        timeout: int = 10
+    ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.auth_server = auth_server.rstrip('/')
+        self.redirect_uri = redirect_uri
+        self.scope = scope
+        self.timeout = timeout
+
+    def get_authorization_url(self, state: Optional[str] = None) -> str:
+        """获取授权 URL"""
+        if not state:
+            state = secrets.token_urlsafe(32)
+        session['oauth_state'] = state
+
+        params = {
+            'client_id': self.client_id,
+            'redirect_uri': self.redirect_uri,
+            'response_type': 'code',
+            'scope': self.scope,
+            'state': state
+        }
+
+        return f"{self.auth_server}/oauth/authorize?{urlencode(params)}"
+
+    def exchange_code_for_token(self, code: str) -> dict:
+        """用授权码换取访问令牌"""
+        token_url = f"{self.auth_server}/oauth/token"
+
+        data = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'redirect_uri': self.redirect_uri
+        }
+
+        try:
+            response = requests.post(token_url, data=data, timeout=self.timeout)
+        except requests.RequestException as e:
+            raise SSOError(f"连接 SSO 服务器失败: {e}") from e
+
+        if response.status_code != 200:
+            raise SSOError(f"Token exchange failed [{response.status_code}]: {response.text}")
+
+        return response.json()
+
+    def get_user_info(self, access_token: str) -> dict:
+        """
+        使用 access_token 获取用户信息
+
+        Args:
+            access_token: 访问令牌
+
+        Returns:
+            用户信息字典
+        """
+        userinfo_url = f"{self.auth_server}/oauth/userinfo"
+
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        try:
+            response = requests.get(userinfo_url, headers=headers, timeout=self.timeout)
+        except requests.RequestException as e:
+            raise SSOError(f"连接 SSO 服务器失败: {e}") from e
+
+        if response.status_code != 200:
+            raise SSOError(f"Failed to get user info [{response.status_code}]: {response.text}")
+
+        return response.json()
+
+    def verify_token(self, access_token: str) -> dict:
+        """验证访问令牌（保持向后兼容）"""
+        return self.get_user_info(access_token)
+
+    def get_user(self) -> Optional[dict]:
+        """获取当前登录用户"""
+        return session.get('user')
+
+    def login_required(self, f: Callable) -> Callable:
+        """登录装饰器"""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user' not in session:
+                session['next_url'] = request.url
+                return redirect(self.get_authorization_url())
+            return f(*args, **kwargs)
+        return decorated_function
+
+    def handle_callback(self):
+        """
+        处理 OAuth 回调
+        """
+        # 检查错误
+        error = request.args.get('error')
+        if error:
+            error_description = request.args.get('error_description', 'Unknown error')
+            raise SSOError(f"Authorization failed: {error} - {error_description}")
+
+        # 验证 state
+        state = request.args.get('state')
+        stored_state = session.get('oauth_state')
+        if stored_state and state != stored_state:
+            raise SSOError("Invalid state parameter")
+
+        # 获取授权码
+        code = request.args.get('code')
+        if not code:
+            raise SSOError("No authorization code received")
+
+        # 交换令牌
+        token_data = self.exchange_code_for_token(code)
+
+        # 检查返回的数据结构
+        if 'access_token' not in token_data:
+            raise SSOError(f"No access_token in response: {token_data}")
+
+        access_token = token_data['access_token']
+
+        # 使用 access_token 获取用户信息
+        user_info = self.get_user_info(access_token)
+
+        # 保存用户信息和令牌
+        session['user'] = user_info
+        session['access_token'] = access_token
+        session['refresh_token'] = token_data.get('refresh_token')
+
+        # 清理 state
+        session.pop('oauth_state', None)
+
+        return user_info
+
+    def logout(self):
+        """注销登录"""
+        session.pop('user', None)
+        session.pop('access_token', None)
+        session.pop('refresh_token', None)
+        session.pop('next_url', None)
+        session.pop('oauth_state', None)
+
+    @property
+    def is_logged_in(self) -> bool:
+        """当前是否已登录。"""
+        return 'user' in session
+
+    def require_login(self, f: Callable) -> Callable:
+        """英文别名，兼容部分第三方示例。"""
+        return self.login_required(f)
+
+    def init_app(self, app: Flask, callback_path: str = '/sso/callback'):
+        """初始化 Flask 应用"""
+        if not app.secret_key:
+            raise ValueError("Flask app must have a secret_key set")
+
+        @app.route(callback_path)
+        def sso_callback():
+            try:
+                self.handle_callback()
+                next_url = session.pop('next_url', '/')
+                return redirect(next_url)
+            except SSOError as e:
+                return f"登录失败: {str(e)}", 400

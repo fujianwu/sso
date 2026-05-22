@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSO 认证中心 — 统一身份认证平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        /* ── 粒子画布 ── */
+        #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+        /* ── 通用页面内容层 ── */
+        .page-content { position: relative; z-index: 1; }
+
+        /* ── 导航 ── */
+        .navbar { position: sticky; top: 0; z-index: 1000; }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 92vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 1.5rem;
+            position: relative;
+        }
+        .hero-bg-ring {
+            position: absolute;
+            width: 600px; height: 600px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,229,255,0.07);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: ring-pulse 8s ease-in-out infinite;
+        }
+        .hero-bg-ring:nth-child(2) { width: 400px; height: 400px; animation-delay: -2s; border-color: rgba(0,229,255,0.1); }
+        .hero-bg-ring:nth-child(3) { width: 800px; height: 800px; animation-delay: -4s; border-color: rgba(124,58,237,0.06); }
+        @keyframes ring-pulse {
+            0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+            50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.04); }
+        }
+
+        .hero-eyebrow {
+            font-family: var(--font-display);
+            font-size: 0.65rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .hero-eyebrow::before, .hero-eyebrow::after {
+            content: '';
+            width: 40px; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-color));
+        }
+        .hero-eyebrow::after { transform: scaleX(-1); }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.2rem, 6vw, 4.2rem);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -1px;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-color) 60%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 40px rgba(0,229,255,0.2));
+        }
+
+        .hero-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .hero-btn {
+            padding: 0.875rem 2.25rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-btn svg { width: 16px; height: 16px; }
+        .hero-btn-primary {
+            background: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 32px rgba(0,229,255,0.35);
+        }
+        .hero-btn-primary:hover {
+            box-shadow: 0 0 52px rgba(0,229,255,0.55);
+            transform: translateY(-2px);
+        }
+        .hero-btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--border-light);
+        }
+        .hero-btn-secondary:hover {
+            border-color: var(--primary-color);
+            background: rgba(0,229,255,0.07);
+            transform: translateY(-2px);
+        }
+
+        /* ── Features ── */
+        .section {
+            padding: 5rem 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+        .section-label {
+            font-family: var(--font-display);
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            opacity: 0.8;
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-primary);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .feature-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem 1.75rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .feature-card:hover {
+            border-color: var(--border-light);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 48px rgba(0,229,255,0.1);
+        }
+        .feature-card:hover::before { opacity: 1; }
+
+        .feature-icon-wrap {
+            width: 52px; height: 52px;
+            border-radius: var(--radius-md);
+            background: rgba(0,229,255,0.08);
+            border: 1px solid rgba(0,229,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+        .feature-icon-wrap svg { width: 24px; height: 24px; color: var(--primary-color); }
+        .feature-title {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        .feature-desc { color: var(--text-secondary); font-size: 0.875rem; line-height: 1.65; }
+
+        /* ── Divider ── */
+        .section-divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── CTA ── */
+        .cta-section {
+            padding: 5rem 1.5rem;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .cta-box {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 3.5rem 2.5rem;
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), var(--accent-color), transparent);
+        }
+        .cta-box-title {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .cta-box-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles"></canvas>
+
+    <div class="page-content">
+        {% include "header.html" %}
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-bg-ring"></div>
+            <div class="hero-bg-ring"></div>
+            <div class="hero-bg-ring"></div>
+            <div style="position: relative; z-index: 1; animation: float-up 0.8s ease both;">
+                <div class="hero-eyebrow">统一身份认证</div>
+                <h1 class="hero-title">SSO 认证中心</h1>
+                <p class="hero-subtitle">
+                    基于 OAuth 2.0 标准协议构建的单点登录系统。<br>
+                    一次认证，安全访问所有集成应用。
+                </p>
+                <div class="hero-buttons">
+                    <a href="/login" class="hero-btn hero-btn-primary">
+                        <i data-lucide="log-in"></i>
+                        立即登录
+                    </a>
+                    <a href="/docs" class="hero-btn hero-btn-secondary">
+                        <i data-lucide="book-open"></i>
+                        接入文档
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- Features -->
+        <section class="section" id="features">
+            <div class="section-header">
+                <div class="section-label">核心能力</div>
+                <h2 class="section-title">为安全认证而生</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="lock-keyhole"></i></div>
+                    <div class="feature-title">单点登录 (SSO)</div>
+                    <p class="feature-desc">一次登录，访问所有集成应用，无需重复输入凭证，体验无缝切换。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="shield-half"></i></div>
+                    <div class="feature-title">OAuth 2.0</div>
+                    <p class="feature-desc">遵循行业标准授权协议，支持授权码模式，为第三方应用提供安全可控的访问授权。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="fingerprint"></i></div>
+                    <div class="feature-title">多因素认证 (MFA)</div>
+                    <p class="feature-desc">支持 TOTP 动态验证码，结合异常登录检测，大幅提升账户安全性。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="activity"></i></div>
+                    <div class="feature-title">异常登录检测</div>
+                    <p class="feature-desc">分析登录 IP、设备指纹与历史行为，自动识别可疑登录并触发二次验证。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="layout-dashboard"></i></div>
+                    <div class="feature-title">管理后台</div>
+                    <p class="feature-desc">完整的管理员控制台，支持用户管理、应用接入配置、审计日志查看。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon-wrap"><i data-lucide="code-2"></i></div>
+                    <div class="feature-title">Python SDK</div>
+                    <p class="feature-desc">提供官方 Python SDK，几行代码即可完成 SSO 接入，支持 Flask 和 FastAPI。</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- CTA -->
+        <section class="cta-section">
+            <div class="cta-box">
+                <div class="cta-box-title">接入只需几分钟</div>
+                <p class="cta-box-desc">注册账号，在管理后台添加你的应用，即可获得完整的 SSO 认证能力。</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="/register" class="hero-btn hero-btn-primary">
+                        <i data-lucide="user-plus"></i>
+                        注册账号
+                    </a>
+                    <a href="/docs" class="hero-btn hero-btn-secondary">
+                        <i data-lucide="file-code"></i>
+                        查看接入指南
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {% include "footer.html" %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // ── 粒子背景 ──
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+
+        // 性能优化版粒子：
+        // 1. 粒子数减半，降低 O(N²) 连线开销
+        // 2. devicePixelRatio 降级：canvas 用 0.6x 分辨率，CSS scale 补偿
+        // 3. 连线距离缩短到 110px 进一步减少配对数
+        // 4. 用 RAF 节流：低性能设备跳帧
+        const CYAN = '0,229,255';
+        const PURPLE = '124,58,237';
+        const N = Math.min(80, Math.floor(window.innerWidth / 20));
+        const LINK_DIST = 140;
+        let lastTime = 0;
+
+        // 降分辨率渲染（节省 GPU 填充率）
+        function resize() {
+            const ratio = Math.min(window.devicePixelRatio || 1, 1.5) * 0.6;
+            W = canvas.width  = window.innerWidth  * ratio;
+            H = canvas.height = window.innerHeight * ratio;
+            canvas.style.width  = window.innerWidth  + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            ctx.scale(ratio, ratio);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        for (let i = 0; i < N; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                r: Math.random() * 1.2 + 0.4,
+                color: Math.random() > 0.65 ? PURPLE : CYAN
+            });
+        }
+
+        function draw(ts) {
+            const VW = window.innerWidth, VH = window.innerHeight;
+            ctx.clearRect(0, 0, VW, VH);
+
+            // 连线（提前退出优化）
+            const len = particles.length;
+            const LD2 = LINK_DIST * LINK_DIST;
+            for (let i = 0; i < len; i++) {
+                const pi = particles[i];
+                for (let j = i + 1; j < len; j++) {
+                    const pj = particles[j];
+                    const dx = pi.x - pj.x;
+                    if (Math.abs(dx) > LINK_DIST) continue; // 快速剪枝
+                    const dy = pi.y - pj.y;
+                    const d2 = dx*dx + dy*dy;
+                    if (d2 < LD2) {
+                        const alpha = 0.1 * (1 - Math.sqrt(d2) / LINK_DIST);
+                        ctx.beginPath();
+                        ctx.moveTo(pi.x, pi.y);
+                        ctx.lineTo(pj.x, pj.y);
+                        ctx.strokeStyle = `rgba(${CYAN},${alpha.toFixed(3)})`;
+                        ctx.lineWidth = 0.4;
+                        ctx.stroke();
+                    }
+                }
+            }
+            // 点 + 移动
+            for (let i = 0; i < len; i++) {
+                const p = particles[i];
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${p.color},0.5)`;
+                ctx.fill();
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0 || p.x > VW) p.vx *= -1;
+                if (p.y < 0 || p.y > VH) p.vy *= -1;
+            }
+            requestAnimationFrame(draw);
+        }
+        requestAnimationFrame(draw);
+    </script>
+</body>
+</html>

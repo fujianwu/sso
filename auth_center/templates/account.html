@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户中心 — SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/account-switcher.js') }}"></script>
+    <style>
+        #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.35; }
+
+        .account-wrap {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+            position: relative; z-index: 1;
+            min-height: calc(100vh - 58px);
+        }
+
+        /* ── 侧边栏 ── */
+        .sidebar { height: fit-content; position: sticky; top: 74px; }
+        .sidebar-card {
+            background: rgba(8,15,31,0.95);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            animation: float-up 0.5s ease both;
+        }
+        .sidebar-card::before {
+            content: ''; display: block; height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        }
+        .user-hero {
+            padding: 1.75rem 1.25rem 1.25rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .user-avatar {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0 0 4px rgba(0,229,255,0.12), 0 0 24px rgba(0,229,255,0.25);
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        .user-avatar i { width: 32px; height: 32px; color: #000; }
+        .user-name { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; color: var(--text-primary); margin-bottom: 0.3rem; }
+        .user-email { color: var(--text-muted); font-size: 0.78rem; word-break: break-all; }
+        .nav-menu { padding: 0.75rem; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 0.65rem 0.875rem;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            text-decoration: none; font-size: 0.85rem; font-weight: 500; cursor: pointer;
+            transition: all 0.18s; border: 1px solid transparent; margin-bottom: 2px; letter-spacing: 0.5px;
+        }
+        .nav-item i { width: 15px; height: 15px; flex-shrink: 0; }
+        .nav-item:hover { color: var(--primary-color); background: rgba(0,229,255,0.05); border-color: var(--border-color); }
+        .nav-item.active { color: var(--primary-color); background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.25); box-shadow: inset 3px 0 0 var(--primary-color); }
+        .nav-item.danger { color: var(--danger-color); }
+        .nav-item.danger:hover { background: rgba(255,23,68,0.07); border-color: rgba(255,23,68,0.25); }
+        .nav-divider { height: 1px; background: var(--border-color); margin: 0.5rem 0.875rem; }
+
+        /* ── 主内容 ── */
+        .main-content { min-width: 0; }
+        .section-panel { display: none; animation: float-up 0.3s ease both; }
+        .section-panel.active { display: block; }
+
+        .panel-card {
+            background: rgba(8,15,31,0.95);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 1.25rem; overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .panel-card:hover { border-color: rgba(0,229,255,0.2); }
+        .panel-card-head {
+            padding: 1.25rem 1.5rem 1rem;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .panel-card-head::before { content: ''; width: 3px; height: 20px; background: linear-gradient(180deg, var(--primary-color), var(--accent-color)); border-radius: 2px; flex-shrink: 0; }
+        .panel-card-head i { width: 18px; height: 18px; color: var(--primary-color); }
+        .panel-card-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-primary); }
+        .panel-card-body { padding: 1.5rem; }
+        .panel-card-sub { font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
+
+        /* ── 表单 ── */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-row.full { grid-template-columns: 1fr; }
+        .form-group { margin-bottom: 0; }
+        .field-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; display: flex; align-items: center; gap: 4px; }
+        .field-hint i { width: 11px; height: 11px; }
+
+        /* ── 按钮 ── */
+        .btn-save {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 0.6rem 1.5rem; font-family: var(--font-family); font-size: 0.8rem; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase; background: var(--primary-color); color: #000;
+            border: none; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 0 16px rgba(0,229,255,0.2); text-decoration: none; position: relative; overflow: hidden;
+        }
+        .btn-save::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); transition: left 0.4s; }
+        .btn-save:hover::before { left:100%; }
+        .btn-save:hover { box-shadow: 0 0 28px rgba(0,229,255,0.4); transform: translateY(-1px); }
+        .btn-save:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+        .btn-save i { width: 14px; height: 14px; }
+        .btn-save-ghost { background: transparent; color: var(--primary-color); border: 1px solid var(--border-light); box-shadow: none; }
+        .btn-save-ghost:hover { background: rgba(0,229,255,0.07); border-color: var(--primary-color); box-shadow: 0 0 12px rgba(0,229,255,0.1); }
+
+        .btn-danger-sm {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 0.45rem 0.875rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+            background: transparent; color: var(--danger-color); border: 1px solid rgba(255,23,68,0.35);
+            border-radius: var(--radius-sm); cursor: pointer; transition: all 0.18s;
+        }
+        .btn-danger-sm:hover { background: rgba(255,23,68,0.1); border-color: var(--danger-color); box-shadow: 0 0 12px rgba(255,23,68,0.15); }
+        .btn-danger-sm i { width: 12px; height: 12px; }
+        .btn-danger-sm:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* ── 会话 ── */
+        .session-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .session-item {
+            background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-md);
+            padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+            transition: all 0.18s;
+        }
+        .session-item:hover { border-color: rgba(0,229,255,0.2); background: rgba(0,229,255,0.03); }
+        .session-item.current-session { border-color: rgba(0,230,118,0.25); }
+        .session-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0; }
+        .session-icon-wrap { width:36px;height:36px;border-radius:var(--radius-sm);background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+        .session-icon-wrap i { width: 16px; height: 16px; color: var(--primary-color); }
+        .session-device { font-size:0.875rem;font-weight:600;color:var(--text-primary);margin-bottom:0.3rem;display:flex;align-items:center;gap:8px; }
+        .session-meta { font-size:0.75rem;color:var(--text-muted);display:flex;gap:1rem;flex-wrap:wrap; }
+        .session-meta span { display:flex;align-items:center;gap:4px; }
+        .session-meta i { width: 11px; height: 11px; }
+        .current-badge { font-size:0.65rem;font-family:var(--font-display);letter-spacing:1.5px;text-transform:uppercase;color:var(--success-color);background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25);padding:1px 7px;border-radius:var(--radius-full); }
+
+        /* ── 登录历史 ── */
+        .log-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .log-item { display:flex;align-items:center;gap:1rem;padding:0.875rem 1rem;background:rgba(0,0,0,0.2);border:1px solid var(--border-color);border-left:3px solid;border-radius:var(--radius-sm);transition:background 0.15s; }
+        .log-item:hover { background: rgba(0,229,255,0.03); }
+        .log-item.ok { border-left-color: var(--success-color); }
+        .log-item.fail { border-left-color: var(--danger-color); }
+        .log-icon i { width: 16px; height: 16px; }
+        .log-item.ok .log-icon i { color: var(--success-color); }
+        .log-item.fail .log-icon i { color: var(--danger-color); }
+        .log-body { flex: 1; min-width: 0; }
+        .log-time { font-size: 0.85rem; color: var(--text-secondary); }
+        .log-detail { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+        .log-badge { font-size:0.7rem;font-family:var(--font-display);font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:var(--radius-full); }
+        .log-badge.ok { color:var(--success-color);background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2); }
+        .log-badge.fail { color:var(--danger-color);background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.2); }
+
+        /* ── MFA ── */
+        .mfa-status-row { display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;background:rgba(0,0,0,0.2);border:1px solid var(--border-color);border-radius:var(--radius-md); }
+        .mfa-status-left { display:flex;align-items:center;gap:12px; }
+        .mfa-icon { width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center; }
+        .mfa-icon.on { background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25); }
+        .mfa-icon.off { background:rgba(255,23,68,0.1);border:1px solid rgba(255,23,68,0.25); }
+        .mfa-icon i { width: 18px; height: 18px; }
+        .mfa-icon.on i { color:var(--success-color); }
+        .mfa-icon.off i { color:var(--danger-color); }
+        .mfa-label { font-size:0.875rem;font-weight:600;color:var(--text-primary); }
+        .mfa-sublabel { font-size:0.78rem;color:var(--text-muted);margin-top:2px; }
+
+        /* ── 空状态 ── */
+        .empty-state { text-align:center;padding:2.5rem;color:var(--text-muted);border:1px dashed var(--border-color);border-radius:var(--radius-md); }
+        .empty-state i { width:36px;height:36px;margin-bottom:0.75rem;display:block;margin-left:auto;margin-right:auto;color:var(--text-muted); }
+
+        /* ── Toast ── */
+        #toast-box { position:fixed;top:70px;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none; }
+        .toast-item { display:flex;align-items:center;gap:10px;padding:0.75rem 1rem;background:rgba(8,15,31,0.97);border-radius:var(--radius-md);font-size:0.85rem;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.6);border-left:3px solid;max-width:340px;pointer-events:all;animation:slideInRight .25s ease both; }
+        .toast-item i { width:15px;height:15px;flex-shrink:0; }
+        .toast-item.ok { border-color:var(--success-color);color:#4cffaa; }
+        .toast-item.err { border-color:var(--danger-color);color:#ff6b8a; }
+
+        /* ── 密码强度 ── */
+        .strength-bars { display:flex;gap:3px;margin-top:6px; }
+        .strength-bar { flex:1;height:3px;border-radius:2px;background:var(--border-color);transition:background 0.2s; }
+        .strength-bar.weak { background:var(--danger-color); }
+        .strength-bar.medium { background:var(--warning-color); }
+        .strength-bar.strong { background:var(--success-color); }
+        .strength-text { font-size:0.72rem;color:var(--text-muted);margin-top:4px; }
+
+        /* ── 响应式 ── */
+        @media (max-width: 768px) {
+            .account-wrap { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
+            .sidebar { position: static; }
+            .nav-menu { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; padding: 0.5rem; }
+            .nav-item { flex-direction: column; gap: 4px; padding: 0.5rem; font-size: 0.65rem; letter-spacing: 0; justify-content: center; text-align: center; border: 1px solid transparent; box-shadow: none !important; }
+            .nav-divider { display: none; }
+            .form-row { grid-template-columns: 1fr; }
+            .session-item { flex-direction: column; align-items: flex-start; }
+            .mfa-status-row { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles"></canvas>
+    {% include "header.html" %}
+
+    <div class="account-wrap">
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <div class="user-hero">
+                    <div class="user-avatar"><i data-lucide="user-circle"></i></div>
+                    <div class="user-name">{{ current_user.name }}</div>
+                    <div class="user-email">{{ current_user.email }}</div>
+                </div>
+                <nav class="nav-menu">
+                    <a class="nav-item active" data-section="profile"><i data-lucide="user"></i><span>个人资料</span></a>
+                    <a class="nav-item" data-section="security"><i data-lucide="lock"></i><span>安全设置</span></a>
+                    <a class="nav-item" data-section="sessions"><i data-lucide="monitor"></i><span>活动会话</span></a>
+                    <a class="nav-item" data-section="logs"><i data-lucide="history"></i><span>登录历史</span></a>
+                    <a href="/inbox" class="nav-item"><i data-lucide="inbox"></i><span>收件箱</span></a>
+                    <div class="nav-divider"></div>
+                    <a href="/logout" class="nav-item danger"><i data-lucide="log-out"></i><span>登出</span></a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="toast-box"></div>
+
+            <!-- 个人资料 -->
+            <div class="section-panel active" id="profile">
+                <div class="panel-card">
+                    <div class="panel-card-head"><i data-lucide="user"></i><span class="panel-card-title">个人资料</span></div>
+                    <div class="panel-card-body">
+                        <p class="panel-card-sub">管理你的账户显示名称和用户名。</p>
+                        <form id="profileForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="user-check"></i>姓名</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="text-cursor"></i></span>
+                                        <input type="text" class="form-input" name="name" value="{{ current_user.name }}" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="at-sign"></i>用户名</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="hash"></i></span>
+                                        <input type="text" class="form-input" name="username" value="{{ current_user.username or '' }}" placeholder="可选">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="mail"></i>邮箱地址</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="inbox"></i></span>
+                                        <input type="email" class="form-input" value="{{ current_user.email }}" disabled>
+                                    </div>
+                                    <div class="field-hint"><i data-lucide="info"></i>邮箱不可修改</div>
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="smartphone"></i>手机号</label>
+                                    {% if current_user.phone %}
+                                    <div style="display:flex;gap:0.75rem;align-items:center;">
+                                        <div class="form-input-wrapper" style="flex:1;">
+                                            <span class="input-icon"><i data-lucide="phone"></i></span>
+                                            <input type="text" class="form-input" value="{{ current_user.phone }}" disabled>
+                                        </div>
+                                        <button type="button" class="btn-danger-sm" id="unbindPhoneBtn" style="white-space:nowrap;padding:0.55rem 1rem;height:42px;">
+                                            <i data-lucide="phone-off"></i><span>解绑</span>
+                                        </button>
+                                    </div>
+                                    <div class="field-hint"><i data-lucide="check-circle"></i>已绑定，可用手机验证码登录</div>
+                                    {% else %}
+                                    <div style="display:flex;gap:0.75rem;">
+                                        <div class="form-input-wrapper" style="flex:1;">
+                                            <span class="input-icon"><i data-lucide="phone"></i></span>
+                                            <input type="text" class="form-input" id="bindPhoneInput" placeholder="输入手机号" maxlength="11" inputmode="numeric">
+                                        </div>
+                                        <button type="button" class="btn-save" id="sendBindCodeBtn" style="white-space:nowrap;padding:0 1rem;font-size:0.78rem;height:42px;">
+                                            <i data-lucide="send"></i><span>发送验证码</span>
+                                        </button>
+                                    </div>
+                                    <div style="display:none;margin-top:0.75rem;" id="bindCodeRow">
+                                        <div style="display:flex;gap:0.75rem;">
+                                            <div class="form-input-wrapper" style="flex:1;">
+                                                <span class="input-icon"><i data-lucide="key"></i></span>
+                                                <input type="text" class="form-input" id="bindCodeInput" placeholder="输入6位验证码" maxlength="6" inputmode="numeric">
+                                            </div>
+                                            <button type="button" class="btn-save" id="bindPhoneBtn" style="white-space:nowrap;padding:0 1rem;font-size:0.78rem;height:42px;">
+                                                <i data-lucide="link"></i><span>绑定</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="field-hint"><i data-lucide="info"></i>绑定后可用手机验证码登录</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="text-align:right;margin-top:1rem;">
+                                <button type="submit" class="btn-save" id="saveProfileButton">
+                                    <i data-lucide="save"></i><span>保存更改</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 安全设置 -->
+            <div class="section-panel" id="security">
+                <div class="panel-card" style="margin-bottom:1.25rem;">
+                    <div class="panel-card-head"><i data-lucide="key"></i><span class="panel-card-title">修改密码</span></div>
+                    <div class="panel-card-body">
+                        <p class="panel-card-sub">定期更换密码有助于保护账户安全。</p>
+                        <form id="passwordForm">
+                            <div class="form-row full">
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="lock-keyhole"></i>当前密码</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="lock"></i></span>
+                                        <input type="password" class="form-input" name="current_password" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="key-round"></i>新密码</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="lock-open"></i></span>
+                                        <input type="password" class="form-input" name="new_password" id="newPwInput">
+                                    </div>
+                                    <div class="strength-bars"><div class="strength-bar" id="sb1"></div><div class="strength-bar" id="sb2"></div><div class="strength-bar" id="sb3"></div></div>
+                                    <div class="strength-text" id="sbText">密码强度</div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="check-circle-2"></i>确认新密码</label>
+                                    <div class="form-input-wrapper">
+                                        <span class="input-icon"><i data-lucide="shield-check"></i></span>
+                                        <input type="password" class="form-input" name="confirm_new_password" id="confirmPwInput">
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align:right;margin-top:1rem;">
+                                <button type="submit" class="btn-save" id="savePasswordButton">
+                                    <i data-lucide="rotate-ccw"></i><span>更新密码</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-card-head"><i data-lucide="fingerprint"></i><span class="panel-card-title">多因素认证 (MFA)</span></div>
+                    <div class="panel-card-body">
+                        <div class="mfa-status-row">
+                            <div class="mfa-status-left">
+                                {% if current_user.mfa_enabled %}
+                                <div class="mfa-icon on"><i data-lucide="shield-check"></i></div>
+                                <div><div class="mfa-label">MFA 已启用</div><div class="mfa-sublabel">TOTP 动态验证码保护中</div></div>
+                                {% else %}
+                                <div class="mfa-icon off"><i data-lucide="shield-off"></i></div>
+                                <div><div class="mfa-label">MFA 未启用</div><div class="mfa-sublabel">建议开启以提升账户安全性</div></div>
+                                {% endif %}
+                            </div>
+                            <a href="/mfa/setup" class="btn-save {% if current_user.mfa_enabled %}btn-save-ghost{% endif %}">
+                                <i data-lucide="{% if current_user.mfa_enabled %}settings{% else %}plus{% endif %}"></i>
+                                <span>{% if current_user.mfa_enabled %}管理 MFA{% else %}立即开启{% endif %}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passkeys 通行密钥管理 -->
+                <div class="panel-card" id="passkeysCard">
+                    <div class="panel-card-head">
+                        <i data-lucide="scan-face"></i>
+                        <span class="panel-card-title">通行密钥 (Passkeys)</span>
+                    </div>
+                    <div class="panel-card-body">
+                        <p class="panel-card-sub">
+                            通行密钥使用设备的生物识别（Face ID、Touch ID、指纹）或系统密码代替输入密码登录，
+                            更安全、更便捷。注册后可直接在登录页点击「使用通行密钥登录」。
+                        </p>
+
+                        <!-- 浏览器不支持时的提示 -->
+                        <div id="passkeyUnsupported" style="display:none;padding:12px 16px;background:rgba(245,158,11,0.1);
+                             border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:0.82rem;color:#fbbf24;margin-bottom:16px;">
+                            ⚠️ 当前浏览器不支持 Passkeys，请使用 Safari 16+、Chrome 108+ 或 Edge 108+。
+                        </div>
+
+                        <!-- 已注册的 Passkey 列表 -->
+                        <div id="passkeyList" style="margin-bottom:16px;">
+                            <p style="font-size:.82rem;color:var(--text-muted);">正在加载…</p>
+                        </div>
+
+                        <!-- 注册方式选择 -->
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <!-- 本机注册（Windows Hello / Mac Touch ID）-->
+                            <button id="registerPasskeyBtn" type="button"
+                                style="display:flex;align-items:center;gap:8px;padding:9px 18px;
+                                       background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;
+                                       border-radius:8px;color:#fff;font-size:0.85rem;font-weight:600;
+                                       cursor:pointer;transition:opacity .2s;">
+                                <i data-lucide="monitor" style="width:15px;height:15px;"></i>
+                                本机注册（Windows Hello / Touch ID）
+                            </button>
+
+                            <!-- 手机扫码注册（Cross-Device / Hybrid）-->
+                            <button id="registerPasskeyPhoneBtn" type="button"
+                                style="display:flex;align-items:center;gap:8px;padding:9px 18px;
+                                       background:linear-gradient(135deg,#0ea5e9,#6366f1);border:none;
+                                       border-radius:8px;color:#fff;font-size:0.85rem;font-weight:600;
+                                       cursor:pointer;transition:opacity .2s;">
+                                <i data-lucide="smartphone" style="width:15px;height:15px;"></i>
+                                手机扫码注册（iPhone / Android）
+                            </button>
+                        </div>
+
+                        <!-- 手机扫码说明 -->
+                        <div id="phoneScanHint" style="display:none;margin-top:14px;padding:12px 14px;
+                             background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.25);
+                             border-radius:8px;font-size:0.82rem;color:#7dd3fc;line-height:1.7;">
+                            📱 <strong>使用 iPhone：</strong>用系统相机扫描浏览器弹出的二维码，选择「使用通行密钥」→ Face ID 确认即可。<br>
+                            📱 <strong>使用 Android：</strong>用 Google 相机或 Chrome 扫描，选择「保存通行密钥」→ 指纹 / 锁屏确认。<br>
+                            <span style="color:#94a3b8;font-size:0.78rem;">
+                                二维码由浏览器自动生成，注册完成后可直接在登录页「使用通行密钥登录」时选择手机验证。
+                            </span>
+                        </div>
+
+                        <p id="passkeyMsg" style="margin-top:10px;font-size:.82rem;min-height:18px;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="section-panel" id="sessions">
+                <div class="panel-card">
+                    <div class="panel-card-head"><i data-lucide="monitor"></i><span class="panel-card-title">活动会话</span></div>
+                    <div class="panel-card-body">
+                        <p class="panel-card-sub">当前登录的设备列表。发现陌生设备请立即登出。</p>
+                        <div class="session-list">
+                            {% for session in active_sessions %}
+                            <div class="session-item {% if session.is_current %}current-session{% endif %}">
+                                <div class="session-left">
+                                    <div class="session-icon-wrap"><i data-lucide="{% if session.is_current %}laptop{% else %}monitor-dot{% endif %}"></i></div>
+                                    <div>
+                                        <div class="session-device">
+                                            {{ session.device_info }}
+                                            {% if session.is_current %}<span class="current-badge">当前</span>{% endif %}
+                                        </div>
+                                        <div class="session-meta">
+                                            <span><i data-lucide="map-pin"></i>{{ session.ip_address }}</span>
+                                            <span><i data-lucide="clock"></i>{{ session.login_time }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if not session.is_current %}
+                                <button class="btn-danger-sm btn-revoke-session" data-session-id="{{ session.id }}">
+                                    <i data-lucide="log-out"></i><span>登出</span>
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="empty-state"><i data-lucide="monitor-off"></i><p>没有其他活动会话</p></div>
+                            {% endfor %}
+                        </div>
+                        <div style="text-align:right;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border-color);">
+                            <button class="btn-danger-sm" id="logoutAllButton" style="padding:0.55rem 1.25rem;font-size:0.8rem;">
+                                <i data-lucide="log-out"></i><span>登出所有其他会话</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 登录历史 -->
+            <div class="section-panel" id="logs">
+                <div class="panel-card">
+                    <div class="panel-card-head"><i data-lucide="history"></i><span class="panel-card-title">登录历史</span></div>
+                    <div class="panel-card-body">
+                        <p class="panel-card-sub">最近的登录活动记录。</p>
+                        <div class="log-list">
+                            {% for log in login_logs %}
+                            {% set is_ok = log.status in ['success','SUCCESS','MFA_REQUIRED'] %}
+                            <div class="log-item {% if is_ok %}ok{% else %}fail{% endif %}">
+                                <div class="log-icon"><i data-lucide="{% if is_ok %}check-circle{% else %}x-circle{% endif %}"></i></div>
+                                <div class="log-body">
+                                    <div class="log-time">{{ log.timestamp }}</div>
+                                    <div class="log-detail">{{ log.ip_address }} · {{ log.device_info }}</div>
+                                </div>
+                                <span class="log-badge {% if is_ok %}ok{% else %}fail{% endif %}">{% if is_ok %}成功{% else %}失败{% endif %}</span>
+                            </div>
+                            {% else %}
+                            <div class="empty-state"><i data-lucide="clipboard-list"></i><p>暂无登录历史记录</p></div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% include "footer.html" %}
+
+    <script>
+    lucide.createIcons();
+
+    // ── 粒子背景 ──
+    (function(){
+        const c=document.getElementById('particles'),ctx=c.getContext('2d');
+        let W,H,pts=[];
+        function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+        resize();window.addEventListener('resize',resize);
+        const N=Math.min(50,Math.floor(window.innerWidth/25));
+        for(let i=0;i<N;i++) pts.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,r:Math.random()*1.2+.3});
+        function draw(){
+            ctx.clearRect(0,0,W,H);
+            for(let i=0;i<pts.length;i++){
+                for(let j=i+1;j<pts.length;j++){
+                    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+                    if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(0,229,255,${.1*(1-d/130)})`;ctx.lineWidth=.4;ctx.stroke();}
+                }
+                ctx.beginPath();ctx.arc(pts[i].x,pts[i].y,pts[i].r,0,Math.PI*2);ctx.fillStyle='rgba(0,229,255,0.45)';ctx.fill();
+                pts[i].x+=pts[i].vx;pts[i].y+=pts[i].vy;
+                if(pts[i].x<0||pts[i].x>W)pts[i].vx*=-1;if(pts[i].y<0||pts[i].y>H)pts[i].vy*=-1;
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+    })();
+
+    // ── 标签页切换 ──
+    document.querySelectorAll('.nav-item[data-section]').forEach(item=>{
+        item.addEventListener('click',function(e){
+            e.preventDefault();
+            const t=this.dataset.section;
+            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
+            const panel=document.getElementById(t);
+            if(panel)panel.classList.add('active');
+        });
+    });
+
+    // ── Toast ──
+    function toast(msg,type='ok'){
+        const box=document.getElementById('toast-box');
+        const el=document.createElement('div');
+        el.className=`toast-item ${type}`;
+        el.innerHTML=`<i data-lucide="${type==='ok'?'check-circle':'alert-circle'}"></i><span>${msg}</span>`;
+        box.appendChild(el);lucide.createIcons();
+        setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(20px)';el.style.transition='all .3s';setTimeout(()=>el.remove(),300);},4000);
+    }
+
+    // ── 按钮 loading（安全版：不依赖 span 存在）──
+    function btnLoad(btn,on){
+        const span=btn.querySelector('span');
+        const icon=btn.querySelector('i[data-lucide]');
+        btn.disabled=on;
+        if(on){
+            if(span){btn._origText=span.textContent;span.textContent='处理中…';}
+            if(icon){btn._origIcon=icon.getAttribute('data-lucide');icon.setAttribute('data-lucide','loader-2');icon.style.animation='spin 1s linear infinite';}
+        } else {
+            if(span&&btn._origText)span.textContent=btn._origText;
+            if(icon&&btn._origIcon){icon.setAttribute('data-lucide',btn._origIcon);icon.style.animation='';}
+        }
+        lucide.createIcons();
+    }
+
+    // ── 密码强度 ──
+    document.getElementById('newPwInput')?.addEventListener('input',function(){
+        const v=this.value,bars=[document.getElementById('sb1'),document.getElementById('sb2'),document.getElementById('sb3')];
+        let s=0;
+        if(v.length>=8)s++;if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^a-zA-Z0-9]/.test(v))s++;
+        const lv=s>=4?3:s>=2?2:v.length>0?1:0;
+        const cls=['','weak','medium','strong'];
+        bars.forEach((b,i)=>{b.className='strength-bar';if(i<lv)b.classList.add(cls[lv]);});
+        document.getElementById('sbText').textContent=['密码强度','弱','中等','强'][lv]||'密码强度';
+    });
+
+    // ── 个人资料 ──
+    document.getElementById('profileForm').addEventListener('submit',async function(e){
+        e.preventDefault();
+        const btn=document.getElementById('saveProfileButton');
+        btnLoad(btn,true);
+        try{
+            const r=await fetch('/api/auth/me',{method:'PUT',body:new FormData(this),credentials:'include'});
+            const d=await r.json();
+            if(r.ok){toast(d.message||'资料已更新');const n=new FormData(this).get('name');if(n)document.querySelector('.user-name').textContent=n;}
+            else toast(d.detail||'更新失败','err');
+        }catch{toast('网络错误','err');}
+        finally{btnLoad(btn,false);}
+    });
+
+    // ── 密码更新 ──
+    document.getElementById('passwordForm').addEventListener('submit',async function(e){
+        e.preventDefault();
+        if(document.getElementById('newPwInput').value!==document.getElementById('confirmPwInput').value){toast('两次密码不一致','err');return;}
+        const btn=document.getElementById('savePasswordButton');
+        btnLoad(btn,true);
+        try{
+            const r=await fetch('/api/auth/password/update',{method:'POST',body:new FormData(this),credentials:'include'});
+            const d=await r.json();
+            if(r.ok){toast(d.message||'密码已更新');this.reset();}
+            else toast(d.detail||'更新失败','err');
+        }catch{toast('网络错误','err');}
+        finally{btnLoad(btn,false);}
+    });
+
+    // ── 撤销单个会话 ──
+    document.querySelectorAll('.btn-revoke-session').forEach(btn=>{
+        btn.addEventListener('click',async function(){
+            if(!confirm('确定要登出该会话吗？'))return;
+            const item=this.closest('.session-item');
+            const token=this.dataset.sessionId;
+            btnLoad(this,true);
+            try{
+                const fd=new FormData();fd.append('session_token',token);
+                const r=await fetch('/api/auth/sessions/revoke',{method:'POST',body:fd,credentials:'include'});
+                const d=await r.json();
+                if(r.ok){item.style.opacity='0';item.style.transform='translateX(20px)';item.style.transition='all .3s';setTimeout(()=>item.remove(),300);toast(d.message||'会话已登出');}
+                else toast(d.detail||'操作失败','err');
+            }catch{toast('网络错误','err');}
+        });
+    });
+
+    // ── 登出所有会话（Bug 修复核心：btnLoad 不依赖 span 子元素存在）──
+    document.getElementById('logoutAllButton').addEventListener('click',async function(){
+        if(!confirm('确定要登出所有其他会话吗？'))return;
+        btnLoad(this,true);
+        try{
+            const r=await fetch('/api/auth/sessions/revoke-all',{method:'POST',credentials:'include'});
+            const d=await r.json();
+            if(r.ok){
+                document.querySelectorAll('.session-item:not(.current-session)').forEach(item=>{
+                    item.style.opacity='0';item.style.transition='opacity .3s';setTimeout(()=>item.remove(),300);
+                });
+                toast(d.message||'已登出所有其他会话');
+            } else toast(d.detail||'操作失败','err');
+        }catch{toast('网络错误','err');}
+        finally{btnLoad(this,false);}
+    });
+    // ── 手机号绑定/解绑 ──
+    const sendBindCodeBtn = document.getElementById('sendBindCodeBtn');
+    const bindPhoneBtn    = document.getElementById('bindPhoneBtn');
+    const unbindPhoneBtn  = document.getElementById('unbindPhoneBtn');
+
+    if (sendBindCodeBtn) {
+        sendBindCodeBtn.addEventListener('click', async () => {
+            const phone = document.getElementById('bindPhoneInput').value.trim();
+            if (!phone) { toast('请输入手机号', 'err'); return; }
+            btnLoad(sendBindCodeBtn, true);
+            try {
+                const fd = new FormData(); fd.append('phone', phone);
+                const res = await fetch('/api/auth/phone/send-code', { method: 'POST', body: fd, credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('bindCodeRow').style.display = 'block';
+                    toast('验证码已发送');
+                    let t = 60;
+                    sendBindCodeBtn.disabled = true;
+                    const iv = setInterval(() => {
+                        const sp = sendBindCodeBtn.querySelector('span');
+                        if (sp) sp.textContent = `重新发送(${t--}s)`;
+                        if (t < 0) {
+                            clearInterval(iv);
+                            sendBindCodeBtn.disabled = false;
+                            if (sp) sp.textContent = '发送验证码';
+                        }
+                    }, 1000);
+                } else {
+                    toast(data.detail || '发送失败', 'err');
+                    btnLoad(sendBindCodeBtn, false);
+                }
+            } catch { toast('网络错误', 'err'); btnLoad(sendBindCodeBtn, false); }
+        });
+    }
+
+    if (bindPhoneBtn) {
+        bindPhoneBtn.addEventListener('click', async () => {
+            const phone = document.getElementById('bindPhoneInput').value.trim();
+            const code  = document.getElementById('bindCodeInput').value.trim();
+            if (!phone || !code) { toast('请填写手机号和验证码', 'err'); return; }
+            btnLoad(bindPhoneBtn, true);
+            try {
+                const fd = new FormData(); fd.append('phone', phone); fd.append('code', code);
+                const res = await fetch('/api/auth/phone/bind', { method: 'POST', body: fd, credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) { toast('绑定成功'); setTimeout(() => location.reload(), 1000); }
+                else { toast(data.detail || '绑定失败', 'err'); btnLoad(bindPhoneBtn, false); }
+            } catch { toast('网络错误', 'err'); btnLoad(bindPhoneBtn, false); }
+        });
+    }
+
+    if (unbindPhoneBtn) {
+        unbindPhoneBtn.addEventListener('click', async () => {
+            if (!confirm('确认解绑手机号？解绑后将无法使用手机验证码登录。')) return;
+            btnLoad(unbindPhoneBtn, true);
+            try {
+                const res = await fetch('/api/auth/phone/unbind', { method: 'POST', credentials: 'include' });
+                const data = await res.json();
+                if (res.ok) { toast('解绑成功'); setTimeout(() => location.reload(), 1000); }
+                else { toast(data.detail || '解绑失败', 'err'); btnLoad(unbindPhoneBtn, false); }
+            } catch { toast('网络错误', 'err'); btnLoad(unbindPhoneBtn, false); }
+        });
+    }
+
+    // ─── Passkeys 管理 ────────────────────────────────────────────────────────
+    (function () {
+        const supported = !!window.PublicKeyCredential;
+        if (!supported) {
+            const warn = document.getElementById('passkeyUnsupported');
+            if (warn) warn.style.display = 'block';
+            const btn = document.getElementById('registerPasskeyBtn');
+            if (btn) btn.disabled = true;
+        }
+
+        const listEl = document.getElementById('passkeyList');
+        const msgEl  = document.getElementById('passkeyMsg');
+
+        // ArrayBuffer ↔ base64url
+        function b64ToBuffer(b64url) {
+            const b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+            const bin = atob(b64);
+            const buf = new Uint8Array(bin.length);
+            for (let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+            return buf.buffer;
+        }
+        function bufferToB64(buf) {
+            const bytes = new Uint8Array(buf);
+            let bin='';
+            for (const b of bytes) bin+=String.fromCharCode(b);
+            return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+        }
+
+        function setMsg(text, ok=true) {
+            if (!msgEl) return;
+            msgEl.style.color = ok ? 'var(--success-color)' : 'var(--danger-color)';
+            msgEl.textContent = text;
+            if (text) setTimeout(() => { msgEl.textContent=''; }, 4000);
+        }
+
+        async function loadPasskeys() {
+            if (!listEl) return;
+            try {
+                const r = await fetch('/api/passkeys/list', { credentials:'include' });
+                if (!r.ok) { listEl.innerHTML='<p style="font-size:.82rem;color:var(--text-muted);">加载失败</p>'; return; }
+                const data = await r.json();
+                const keys = data.passkeys || [];
+                if (keys.length === 0) {
+                    listEl.innerHTML='<p style="font-size:.82rem;color:var(--text-muted);">暂未注册通行密钥</p>';
+                    return;
+                }
+                listEl.innerHTML = keys.map(k => `
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding:10px 14px;background:rgba(0,0,0,0.2);border:1px solid var(--border-color);
+                                border-radius:8px;margin-bottom:8px;">
+                        <div>
+                            <div style="font-size:.85rem;font-weight:600;color:var(--text-primary);">
+                                🔑 ${k.device_name}
+                            </div>
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">
+                                注册于 ${k.created_at ? new Date(k.created_at).toLocaleString('zh-CN') : '未知'}
+                                ${k.last_used_at ? ' · 最后使用 '+new Date(k.last_used_at).toLocaleString('zh-CN') : ''}
+                            </div>
+                        </div>
+                        <button onclick="deletePasskey(${k.id})"
+                            style="padding:5px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
+                                   border-radius:6px;color:#f87171;font-size:.78rem;cursor:pointer;">
+                            删除
+                        </button>
+                    </div>`).join('');
+                lucide.createIcons();
+            } catch { listEl.innerHTML='<p style="font-size:.82rem;color:var(--text-muted);">加载失败</p>'; }
+        }
+
+        window.deletePasskey = async function(id) {
+            if (!confirm('确定删除此通行密钥？删除后该设备无法再用 Passkey 登录。')) return;
+            try {
+                const r = await fetch(`/api/passkeys/${id}`, { method:'DELETE', credentials:'include' });
+                if (r.ok) { setMsg('已删除'); loadPasskeys(); }
+                else { const d=await r.json(); setMsg(d.detail||'删除失败', false); }
+            } catch { setMsg('网络错误', false); }
+        };
+
+        const regBtn = document.getElementById('registerPasskeyBtn');
+        const phoneBtn = document.getElementById('registerPasskeyPhoneBtn');
+        const phoneScanHint = document.getElementById('phoneScanHint');
+
+        // 公共注册流程，mode='local'（本机）或 'hybrid'（手机扫码）
+        async function doRegister(mode) {
+            const btn = mode === 'hybrid' ? phoneBtn : regBtn;
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ 请在弹窗中完成验证…';
+            if (mode === 'hybrid' && phoneScanHint) phoneScanHint.style.display = 'block';
+            setMsg('');
+
+            try {
+                // 1. 获取注册 options
+                const beginR = await fetch('/api/passkeys/register/begin', {
+                    method:'POST', credentials:'include'
+                });
+                if (!beginR.ok) { const e=await beginR.json(); throw new Error(e.detail||'获取注册选项失败'); }
+                const options = await beginR.json();
+
+                // 2. 转换 ArrayBuffer 字段
+                options.challenge = b64ToBuffer(options.challenge);
+                options.user.id = b64ToBuffer(options.user.id);
+                if (options.excludeCredentials) {
+                    options.excludeCredentials = options.excludeCredentials.map(c=>({...c,id:b64ToBuffer(c.id)}));
+                }
+
+                // 3. 注入 hints 控制验证器选择方式
+                //    'hybrid'       → Chrome/Edge 弹出含二维码的对话框，手机扫码完成注册
+                //    'client-device'→ 直接唤起本机验证器（Windows Hello / Touch ID）
+                //    旧浏览器不认识 hints 字段会自动忽略，不影响功能
+                if (mode === 'hybrid') {
+                    options.hints = ['hybrid'];
+                    if (options.authenticatorSelection) {
+                        delete options.authenticatorSelection.authenticatorAttachment;
+                    }
+                } else {
+                    options.hints = ['client-device'];
+                }
+
+                // 4. 调起系统弹窗
+                let credential;
+                try {
+                    credential = await navigator.credentials.create({ publicKey: options });
+                } catch(err) {
+                    if (err.name === 'NotAllowedError') throw new Error('注册被取消或超时');
+                    if (err.name === 'NotSupportedError') throw new Error('当前浏览器不支持此方式，请换用 Chrome 108+ 或 Edge 108+');
+                    throw new Error(err.message || '验证器操作失败');
+                }
+
+                // 5. 序列化发给服务端
+                const credPayload = {
+                    id: credential.id,
+                    rawId: bufferToB64(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        clientDataJSON:    bufferToB64(credential.response.clientDataJSON),
+                        attestationObject: bufferToB64(credential.response.attestationObject),
+                    }
+                };
+
+                // 6. 服务端验证保存
+                const completeR = await fetch('/api/passkeys/register/complete', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(credPayload),
+                    credentials:'include',
+                });
+                const result = await completeR.json();
+                if (!completeR.ok) throw new Error(result.detail||'注册验证失败');
+
+                setMsg('✅ ' + (result.message||'通行密钥已注册'));
+                if (mode === 'hybrid' && phoneScanHint) phoneScanHint.style.display = 'none';
+                loadPasskeys();
+
+            } catch(err) {
+                setMsg(err.message||'注册失败，请重试', false);
+                if (mode === 'hybrid' && phoneScanHint) phoneScanHint.style.display = 'none';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+                lucide.createIcons();
+            }
+        }
+
+        if (regBtn && supported)   regBtn.addEventListener('click',   () => doRegister('local'));
+        if (phoneBtn && supported) phoneBtn.addEventListener('click', () => doRegister('hybrid'));
+
+        // 页面加载时拉取列表
+        loadPasskeys();
+    })();
+    </script>
+</body>
+</html>

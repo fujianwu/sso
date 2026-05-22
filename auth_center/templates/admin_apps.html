@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>应用管理 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}" />
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        .app-management-container { max-width: 1200px; margin: 0 auto; }
+        .action-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .app-list { margin-top: 24px; }
+        .app-item { padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; background: var(--bg-secondary); }
+        .app-item-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+        .app-item-title { font-weight: 600; font-size: 18px; margin-bottom: 4px; }
+        .app-item-meta { font-size: 14px; color: var(--text-secondary); }
+        .app-item-details { background: var(--bg-primary); padding: 12px; border-radius: 4px; font-family: monospace; font-size: 13px; margin-top: 8px; }
+        .app-item-detail-row { margin-bottom: 8px; word-break: break-all; }
+        .app-item-detail-label { font-weight: 600; color: var(--text-secondary); display: inline-block; width: 120px; }
+        .copy-btn { padding: 4px 8px; font-size: 12px; margin-left: 8px; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background-color: var(--bg-primary); margin: auto; padding: 24px; border: 1px solid var(--border-color); border-radius: 8px; width: 90%; max-width: 600px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: 600; }
+        .close { color: var(--text-secondary); font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: var(--text-primary); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/admin" class="navbar-brand">🔒 管理控制台</a>
+            <div class="navbar-menu">
+                <a href="/account" class="navbar-link">账户管理</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="app-management-container">
+            <div class="card">
+                <h1 class="card-title">应用管理</h1>
+                <p class="card-subtitle">注册和管理接入 SSO 的应用。</p>
+
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="openRegisterAppModal()">➕ 注册新应用</button>
+                </div>
+
+                <div id="appsListContainer" class="app-list">
+                    <p class="text-secondary">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="appModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="appModalTitle">注册新应用</h2>
+                <span class="close" onclick="closeAppModal()">&times;</span>
+            </div>
+            <form id="appForm" onsubmit="handleAppSubmit(event)">
+                <input type="hidden" id="app_client_id" name="client_id">
+                <div class="form-group">
+                    <label class="form-label" for="app_name">应用名称 (必填)</label>
+                    <input type="text" id="app_name" name="app_name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="redirect_uris">重定向 URI (必填, 多个以逗号分隔)</label>
+                    <textarea id="redirect_uris" name="redirect_uris" class="form-input" rows="3" required placeholder="http://localhost:5001/callback,https://example.com/auth"></textarea>
+                    <div class="form-hint">必须是完整的 URL (包括 http:// 或 https://)</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="app_description">描述 (可选)</label>
+                    <textarea id="app_description" name="description" class="form-input" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="app_url">应用首页 URL（可选，供门户 Ping 检测和跳转）</label>
+                    <input type="url" id="app_url" name="app_url" class="form-input" placeholder="http://myapp.example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="icon_url">图标 URL（可选，建议 64×64 PNG/SVG）</label>
+                    <input type="url" id="icon_url" name="icon_url" class="form-input" placeholder="http://myapp.example.com/icon.png">
+                </div>
+
+                <div id="appFormError" class="form-error"></div>
+                <div class="mt-3 flex gap-2">
+                    <button type="submit" id="appFormBtn" class="btn btn-primary">注册</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAppModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script>
+        let allApps = [];
+
+        function escapeHtml(str) {
+            return String(str === undefined || str === null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        async function safeApiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                credentials: 'include'
+            });
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                throw new Error(`服务器返回非 JSON 响应 (${response.status}): ${responseText.substring(0, 100)}`);
+            }
+
+            if (!response.ok) {
+                const errorMessage = data.detail || data.message || `请求失败 (${response.status})`;
+                throw new Error(errorMessage);
+            }
+
+            return data;
+        }
+
+        async function loadAppsList() {
+            try {
+                const data = await safeApiRequest('/api/admin/apps');
+                allApps = data;
+                renderAppsList();
+            } catch (error) {
+                document.getElementById('appsListContainer').innerHTML =
+                    `<p class="form-error">加载应用列表失败: ${error.message}</p>`;
+            }
+        }
+
+        function renderAppsList() {
+            const container = document.getElementById('appsListContainer');
+            if (allApps.length === 0) {
+                container.innerHTML = '<p class="text-secondary">当前没有注册应用。</p>';
+                return;
+            }
+
+            let html = '';
+
+            allApps.forEach(app => {
+                const redirectUris = app.redirect_uris || [];
+                html += `
+                    <div class="app-item">
+                        <div class="app-item-header">
+                            <div>
+                                <div class="app-item-title">${escapeHtml(app.app_name)}</div>
+                                <div class="app-item-meta">注册于: ${new Date(app.created_at).toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-secondary" style="margin-right:6px;" onclick="openEditAppModal('${escapeHtml(app.client_id)}')">编辑</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteApp('${escapeHtml(app.client_id)}', '${escapeHtml(app.app_name)}')">删除</button>
+                            </div>
+                        </div>
+
+                        ${app.description ? `<p class="app-item-meta">${escapeHtml(app.description)}</p>` : ''}
+
+                        <div class="app-item-details">
+                            <div class="app-item-detail-row">
+                                <span class="app-item-detail-label">Client ID:</span>
+                                <span>${escapeHtml(app.client_id)}</span>
+                                <button class="copy-btn btn-secondary" onclick="copyToClipboard('${escapeHtml(app.client_id)}', this)">复制</button>
+                            </div>
+                            <div class="app-item-detail-row">
+                                <span class="app-item-detail-label">Client Secret:</span>
+                                <span>${escapeHtml(app.client_secret)}</span>
+                                <button class="copy-btn btn-secondary" onclick="copyToClipboard('${escapeHtml(app.client_secret)}', this)">复制</button>
+                            </div>
+                            <div class="app-item-detail-row">
+                                <span class="app-item-detail-label">Redirect URIs:</span>
+                                <div>
+                                    ${redirectUris.map(uri => `<div>${escapeHtml(uri)}</div>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function openRegisterAppModal() {
+            document.getElementById('appModalTitle').textContent = '注册新应用';
+            document.getElementById('appFormBtn').textContent = '注册';
+            document.getElementById('app_client_id').value = '';
+            document.getElementById('app_name').value = '';
+            document.getElementById('redirect_uris').value = '';
+            document.getElementById('app_description').value = '';
+            document.getElementById('app_url').value = '';
+            document.getElementById('icon_url').value = '';
+            document.getElementById('appFormError').textContent = '';
+            document.getElementById('appModal').classList.add('active');
+        }
+
+        function openEditAppModal(clientId) {
+            const app = allApps.find(a => a.client_id === clientId);
+            if (!app) return;
+            document.getElementById('appModalTitle').textContent = '编辑应用';
+            document.getElementById('appFormBtn').textContent = '保存修改';
+            document.getElementById('app_client_id').value = app.client_id;
+            document.getElementById('app_name').value = app.app_name || '';
+            const uris = Array.isArray(app.redirect_uris) ? app.redirect_uris.join(',') : (app.redirect_uris || '');
+            document.getElementById('redirect_uris').value = uris;
+            document.getElementById('app_description').value = app.description || '';
+            document.getElementById('app_url').value = app.app_url || '';
+            document.getElementById('icon_url').value = app.icon_url || '';
+            document.getElementById('appFormError').textContent = '';
+            document.getElementById('appModal').classList.add('active');
+        }
+
+        function closeAppModal() {
+            document.getElementById('appModal').classList.remove('active');
+            document.getElementById('appForm').reset();
+        }
+
+        async function handleAppSubmit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const clientId = form.client_id.value;
+            const appName = form.app_name.value;
+            const redirectUris = form.redirect_uris.value;
+            const description = form.description.value;
+            const errorEl = document.getElementById('appFormError');
+            errorEl.textContent = '';
+
+            const isEdit = !!clientId;
+            const payload = {
+                app_name: appName,
+                redirect_uris: redirectUris,
+                description: description,
+                app_url: form.app_url?.value || null,
+                icon_url: form.icon_url?.value || null,
+            };
+
+            try {
+                if (isEdit) {
+                    const data = await safeApiRequest(`/api/admin/apps/${clientId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(payload)
+                    });
+                    ssoUtils.showAlert(data.message, 'success');
+                } else {
+                    const data = await safeApiRequest('/api/admin/app', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    ssoUtils.showAlert(`应用注册成功!\nClient ID: ${data.client_id}\nClient Secret: ${data.client_secret}`, 'success');
+                }
+                closeAppModal();
+                loadAppsList();
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        async function deleteApp(clientId, appName) {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '确认删除应用',
+                message: `确定要删除应用 "${appName}" (Client ID: ${clientId}) 吗? 此操作不可逆!`,
+                confirmText: '删除',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const data = await safeApiRequest(`/api/admin/apps/${clientId}`, { method: 'DELETE' });
+                ssoUtils.showAlert(data.message, 'success');
+                loadAppsList();
+            } catch (error) {
+                ssoUtils.showAlert('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '已复制!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                ssoUtils.showAlert('复制失败,请手动复制。', 'error');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAppsList);
+
+        window.onclick = function(event) {
+            const appModal = document.getElementById('appModal');
+            if (event.target === appModal) {
+                closeAppModal();
+            }
+        }
+    </script>
+    <script>
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户中心 - {{ config.SITE_NAME }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}?v={{ v }}">
+    <!-- Lucide Icons -->
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/common.js') }}?v={{ v }}"></script>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --content-max-width: 900px;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --card-shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background-color: #f8fafc !important;
+            color: #1e293b;
+        }
+
+        .account-container {
+            max-width: 1240px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        /* 侧边栏样式 */
+        .account-sidebar {
+            background: white;
+            border-radius: 24px;
+            padding: 32px 24px;
+            box-shadow: var(--card-shadow);
+            position: sticky;
+            top: 100px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .profile-card {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .avatar-wrapper {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+
+        .avatar-main {
+            width: 100%;
+            height: 100%;
+            border-radius: 28px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.25rem;
+            font-weight: 700;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+        }
+
+        .profile-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .profile-email {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            color: #64748b;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        .nav-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+            border-color: #dbeafe;
+        }
+
+        .nav-item i {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 内容区样式 */
+        .account-content {
+            max-width: var(--content-max-width);
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #f1f5f9;
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: #f0f7ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-text h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .header-text p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin: 4px 0 0;
+        }
+
+        /* 表单样式 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            width: 18px;
+            height: 18px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            color: #1e293b;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+
+        /* 会话与日志列表 */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            transition: all 0.2s;
+        }
+
+        .list-item:hover {
+            background: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        .item-main {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .item-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .item-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .item-content p {
+            font-size: 0.8125rem;
+            color: #64748b;
+            margin: 4px 0 0;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+
+        .btn-outline-danger {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid #fee2e2;
+            background: white;
+            color: #dc2626;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-outline-danger:hover {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        /* 状态消息 */
+        .status-toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-success { border-left: 4px solid #22c55e; }
+        .toast-error { border-left: 4px solid #ef4444; }
+
+        @media (max-width: 1024px) {
+            .account-container {
+                grid-template-columns: 1fr;
+            }
+            .account-sidebar {
+                position: static;
+                margin-bottom: 24px;
+            }
+            .nav-menu {
+                flex-direction: row;
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+            .nav-item {
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="account-container animate-fade-in">
+        <!-- 侧边栏 -->
+        <aside class="account-sidebar animate-fade-in-up">
+            <div class="profile-card">
+                <div class="avatar-wrapper">
+                    <div class="avatar-main">
+                        {{ current_user.name[0] if current_user.name else current_user.email[0] | upper }}
+                    </div>
+                </div>
+                <h3 class="profile-name">{{ current_user.name or '未设置姓名' }}</h3>
+                <p class="profile-email">{{ current_user.email }}</p>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-item active" data-section="profile">
+                    <i data-lucide="user"></i>
+                    <span>个人资料</span>
+                </div>
+                <div class="nav-item" data-section="authorizations">
+                    <i data-lucide="shield-check"></i>
+                    <span>已授权应用</span>
+                </div>
+                <div class="nav-item" data-section="security">
+                    <i data-lucide="lock"></i>
+                    <span>安全设置</span>
+                </div>
+                <div class="nav-item" data-section="sessions">
+                    <i data-lucide="monitor"></i>
+                    <span>活动会话</span>
+                </div>
+                <div class="nav-item" data-section="logs">
+                    <i data-lucide="history"></i>
+                    <span>登录历史</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 内容区 -->
+        <main class="account-content animate-fade-in-up animate-delay-100">
+            <!-- 个人资料 -->
+            <section class="content-section active" id="profile">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="header-icon"><i data-lucide="user"></i></div>
+                        <div class="header-text">
+                            <h2>个人资料</h2>
+                            <p>管理您的基本信息和公开资料</p>
+                        </div>
+                    </div>
+
+                    <form id="profileForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">姓名</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="user"></i>
+                                    <input type="text" name="name" class="form-control" value="{{ current_user.name or '' }}" placeholder="您的姓名">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">用户名</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="at-sign"></i>
+                                    <input type="text" name="username" class="form-control" value="{{ current_user.username or '' }}" placeholder="用户名">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">电子邮箱</label>
+                            <div class="input-wrapper">
+                                <i data-lucide="mail"></i>
+                                <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+                            </div>
+                        </div>
+                        <div style="margin-top: 24px;">
+                            <button type="submit" class="btn-primary" id="saveProfileButton">
+                                <i data-lucide="save"></i>
+                                <span>保存更改</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 已授权应用 -->
+            <section class="content-section" id="authorizations">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="header-icon"><i data-lucide="shield-check"></i></div>
+                        <div class="header-text">
+                            <h2>已授权应用</h2>
+                            <p>管理您已授权的第三方应用及其权限</p>
+                        </div>
+                    </div>
+
+                    <div class="list-container" id="authorizationsList">
+                        <div style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                            <i data-lucide="loader-2" style="width: 48px; height: 48px; margin-bottom: 16px; animation: spin 1s linear infinite;"></i>
+                            <p>加载中...</p>
+                        </div>
+                    </div>
+
+                    <div id="emptyAuthorizations" style="display: none; text-align: center; padding: 60px 20px; color: #94a3b8;">
+                        <i data-lucide="shield-off" style="width: 48px; height: 48px; margin-bottom: 16px;"></i>
+                        <p style="font-size: 1.125rem; font-weight: 600; margin-bottom: 8px;">暂无已授权的应用</p>
+                        <p style="font-size: 0.875rem;">您可以通过 OAuth 2.0 授权访问第三方应用</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 安全设置 -->
+            <section class="content-section" id="security">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="header-icon"><i data-lucide="lock"></i></div>
+                        <div class="header-text">
+                            <h2>安全设置</h2>
+                            <p>保护您的账户安全，更新密码或启用 MFA</p>
+                        </div>
+                    </div>
+
+                    <form id="passwordForm">
+                        <div class="form-group">
+                            <label class="form-label">当前密码</label>
+                            <div class="input-wrapper">
+                                <i data-lucide="key"></i>
+                                <input type="password" name="current_password" class="form-control" placeholder="输入当前密码以验证身份">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">新密码</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="shield-plus"></i>
+                                    <input type="password" name="new_password" class="form-control" placeholder="至少 8 位字符">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">确认新密码</label>
+                                <div class="input-wrapper">
+                                    <i data-lucide="shield-check"></i>
+                                    <input type="password" name="confirm_new_password" class="form-control" placeholder="再次输入新密码">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" id="savePasswordButton">
+                            <i data-lucide="refresh-cw"></i>
+                            <span>更新密码</span>
+                        </button>
+                    </form>
+
+                    <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 style="font-size: 1.125rem; font-weight: 700; margin: 0;">多因素认证 (MFA)</h3>
+                                <p style="font-size: 0.875rem; color: #64748b; margin: 4px 0 0;">为您的账户增加一层额外的安全保障</p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                {% if mfa_enabled %}
+                                <span class="badge badge-success">已启用</span>
+                                {% else %}
+                                <span class="badge" style="background: #f1f5f9; color: #64748b;">未启用</span>
+                                {% endif %}
+                                <a href="/account/mfa" class="btn-primary" style="background: #f8fafc; color: #1e293b; border: 1px solid #e2e8f0;">
+                                    <i data-lucide="settings"></i>
+                                    <span>管理</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 活动会话 -->
+            <section class="content-section" id="sessions">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="header-icon"><i data-lucide="monitor"></i></div>
+                        <div class="header-text">
+                            <h2>活动会话</h2>
+                            <p>管理您当前登录的所有设备和浏览器</p>
+                        </div>
+                    </div>
+
+                    <div class="list-container">
+                        {% for session in active_sessions %}
+                        <div class="list-item">
+                            <div class="item-main">
+                                <div class="item-icon">
+                                    <i data-lucide="{{ 'laptop' if session.is_current else 'monitor' }}"></i>
+                                </div>
+                                <div class="item-content">
+                                    <h4>
+                                        {{ session.device_info }}
+                                        {% if session.is_current %}
+                                        <span class="badge badge-blue">当前会话</span>
+                                        {% endif %}
+                                    </h4>
+                                    <p>IP: {{ session.ip_address }} • 登录于 {{ session.login_time }}</p>
+                                </div>
+                            </div>
+                            {% if not session.is_current %}
+                            <button class="btn-outline-danger btn-logout-session" data-session-id="{{ session.id }}">
+                                登出
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                            <i data-lucide="monitor-off" style="width: 48px; height: 48px; margin-bottom: 16px;"></i>
+                            <p>暂无其他活动会话</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if active_sessions|length > 1 %}
+                    <div style="margin-top: 32px; text-align: right;">
+                        <button class="btn-outline-danger" id="logoutAllButton" style="padding: 12px 24px;">
+                            登出所有其他会话
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- 登录历史 -->
+            <section class="content-section" id="logs">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="header-icon"><i data-lucide="history"></i></div>
+                        <div class="header-text">
+                            <h2>登录历史</h2>
+                            <p>查看最近 10 次登录尝试记录</p>
+                        </div>
+                    </div>
+
+                    <div class="list-container">
+                        {% for log in login_logs %}
+                        <div class="list-item">
+                            <div class="item-main">
+                                <div class="item-icon" style="background: {{ '#f0fdf4' if log.status == 'success' else '#fef2f2' }}; color: {{ '#16a34a' if log.status == 'success' else '#dc2626' }}; border: none;">
+                                    <i data-lucide="{{ 'check-circle' if log.status == 'success' else 'alert-circle' }}"></i>
+                                </div>
+                                <div class="item-content">
+                                    <h4>{{ '登录成功' if log.status == 'success' else '登录失败' }}</h4>
+                                    <p>{{ log.timestamp }} • IP: {{ log.ip_address }} • {{ log.device_info }}</p>
+                                </div>
+                            </div>
+                            <span class="badge {{ 'badge-success' if log.status == 'success' else 'badge-danger' }}" style="{{ 'background: #fee2e2; color: #991b1b;' if log.status != 'success' else '' }}">
+                                {{ 'SUCCESS' if log.status == 'success' else 'FAILED' }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                            <i data-lucide="clipboard-list" style="width: 48px; height: 48px; margin-bottom: 16px;"></i>
+                            <p>暂无登录历史记录</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="statusToast" class="status-toast">
+        <i id="toastIcon"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // 初始化图标
+        lucide.createIcons();
+
+        // 标签页切换逻辑 (修复版)
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetId = item.getAttribute('data-section');
+
+                // 更新导航状态
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                // 更新内容区显示
+                sections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+
+                // 重新初始化新显示区域的图标
+                lucide.createIcons();
+            });
+        });
+
+        // Toast 通知函数
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('statusToast');
+            const icon = document.getElementById('toastIcon');
+            const msgSpan = document.getElementById('toastMessage');
+
+            toast.className = `status-toast show toast-${type}`;
+            icon.setAttribute('data-lucide', type === 'success' ? 'check-circle' : 'alert-circle');
+            icon.style.color = type === 'success' ? '#22c55e' : '#ef4444';
+            msgSpan.textContent = message;
+
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // 表单提交处理
+        async function handleFormSubmit(formId, url, buttonId) {
+            const form = document.getElementById(formId);
+            const btn = document.getElementById(buttonId);
+            if (!form || !btn) return;
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const originalContent = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> <span>处理中...</span>';
+                lucide.createIcons();
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showToast(data.message || '操作成功');
+                        if (formId === 'passwordForm') form.reset();
+                    } else {
+                        showToast(data.detail || '操作失败', 'error');
+                    }
+                } catch (error) {
+                    showToast('网络连接错误', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                    lucide.createIcons();
+                }
+            });
+        }
+
+        handleFormSubmit('profileForm', '/api/auth/me', 'saveProfileButton');
+        handleFormSubmit('passwordForm', '/api/auth/password/update', 'savePasswordButton');
+
+        // 会话管理
+        document.querySelectorAll('.btn-logout-session').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const sessionId = btn.getAttribute('data-session-id');
+                const confirmed = await ssoUtils.showConfirm({
+                    title: '结束会话',
+                    message: '确定要结束此会话吗？',
+                    type: 'danger'
+                });
+                if (!confirmed) return;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('session_token', sessionId);
+                    const response = await fetch('/api/auth/sessions/revoke', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (response.ok) {
+                        btn.closest('.list-item').remove();
+                        showToast('会话已结束');
+                    }
+                } catch (error) {
+                    showToast('操作失败', 'error');
+                }
+            });
+        });
+
+        // 登出所有
+        const logoutAllBtn = document.getElementById('logoutAllButton');
+        if (logoutAllBtn) {
+            logoutAllBtn.addEventListener('click', async () => {
+                const confirmed = await ssoUtils.showConfirm({
+                    title: '登出所有设备',
+                    message: '确定要登出所有其他设备吗？',
+                    type: 'danger'
+                });
+                if (!confirmed) return;
+                try {
+                    const response = await fetch('/api/auth/sessions/revoke-all', { method: 'POST' });
+                    if (response.ok) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    showToast('操作失败', 'error');
+                }
+            });
+        }
+    </script>
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</body>
+</html>

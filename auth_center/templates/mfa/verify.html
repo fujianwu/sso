@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二次验证 - SSO 认证中心</title>
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <script src="/static/js/lucide.js"></script>
+    <script src="/static/js/common.js"></script>
+    <!-- 使用本地 QRCode 库 -->
+    <script src="/static/js/qrcode.min.js"></script>
+    <script>
+        !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).FingerprintJS=e()}(this,(function(){"use strict";const t=()=>{const t=window.screen;return{width:t.width,height:t.height,colorDepth:t.colorDepth,pixelDepth:t.pixelDepth}};const e=()=>navigator.languages?[...navigator.languages]:navigator.language?[navigator.language]:[];const n=()=>({platform:navigator.platform,vendor:navigator.vendor,cookieEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack||window.doNotTrack,hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:navigator.deviceMemory});const o=async()=>{const t=[];try{const e=await navigator.mediaDevices.enumerateDevices();t.push(...e.map(t=>t.kind))}catch(t){}return t};const r=()=>{try{const t=document.createElement("canvas"),e=t.getContext("2d");e.textBaseline="top",e.font="14px 'Arial'",e.fillStyle="#f60",e.fillRect(125,1,62,20),e.fillStyle="#069",e.fillText("BrowserFingerprint",2,15),e.fillStyle="rgba(102,204,0,0.7)",e.fillText("BrowserFingerprint",4,17);return t.toDataURL()}catch(t){return""}};const i=async()=>{const t=[navigator.userAgent,...e(),...Object.values(n()),r(),...Object.values(t())].join("|"),i=new TextEncoder().encode(t),a=await crypto.subtle.digest("SHA-256",i);return Array.from(new Uint8Array(a)).map(t=>t.toString(16).padStart(2,"0")).join("")};return{getFingerprint:i}}));
+    </script>
+    <style>
+        /* 现代化 MFA 验证页面样式 */
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e1b4b;
+            --card-bg: rgba(30, 41, 59, 0.8);
+            --card-border: rgba(99, 102, 241, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, #1e293b 50%, var(--bg-gradient-end) 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景动画效果 */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-2%, 2%) rotate(1deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+        }
+
+        .verify-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 0;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(99, 102, 241, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            animation: cardAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .card-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: inherit;
+            clip-path: ellipse(60% 100% at 50% 100%);
+        }
+
+        .shield-icon {
+            width: 72px;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .shield-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 30px 10px rgba(255, 255, 255, 0.1); }
+        }
+
+        .card-header h1 {
+            color: white;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.95rem;
+        }
+
+        .card-body {
+            padding: 40px 30px 30px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-box svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-light);
+            flex-shrink: 0;
+        }
+
+        .info-box p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .code-inputs-wrapper {
+            margin-bottom: 30px;
+        }
+
+        .code-inputs-label {
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .code-input-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .code-input {
+            width: 50px;
+            height: 60px;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            background: rgba(15, 23, 42, 0.6);
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .code-input:focus {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            box-shadow:
+                0 0 0 4px rgba(99, 102, 241, 0.1),
+                0 0 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .code-input.filled {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary-light);
+        }
+
+        .code-input.error {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .verify-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verify-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .verify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .verify-btn:hover::before {
+            left: 100%;
+        }
+
+        .verify-btn:active {
+            transform: translateY(0);
+        }
+
+        .verify-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .verify-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .card-footer {
+            padding: 20px 30px 25px;
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-link {
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-light);
+        }
+
+        .footer-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .copyright {
+            color: var(--text-quaternary, rgba(148, 163, 184, 0.5));
+            font-size: 0.75rem;
+            margin-top: 20px;
+        }
+
+        /* 加载状态 */
+        .loading-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 二维码区域样式 */
+        .qr-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+            text-align: center;
+        }
+
+        .qr-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-light);
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .qr-toggle:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .qr-toggle svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .qr-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            max-width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .qr-container.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .qr-container p {
+            color: #1e293b;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+
+        #qrCodeDiv canvas,
+        #qrCodeDiv img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        .qr-hint {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-top: 10px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .card-header {
+                padding: 35px 20px;
+            }
+
+            .card-body {
+                padding: 35px 20px 25px;
+            }
+
+            .code-input {
+                width: 44px;
+                height: 54px;
+                font-size: 1.25rem;
+            }
+
+            .code-input-container {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="verify-card">
+            <div class="card-header">
+                <div class="shield-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <h1>身份验证</h1>
+                <p>为保护您的账户安全,请完成二次验证</p>
+            </div>
+
+            <div class="card-body">
+                <div class="info-box" id="mfaInfo">
+                    <i data-lucide="info"></i>
+                    <p>请输入您验证器应用中显示的 6 位验证码</p>
+                </div>
+                <div class="info-box" id="recoveryInfo" style="display: none;">
+                    <i data-lucide="key"></i>
+                    <p>请输入您的 16 位备份恢复码</p>
+                </div>
+
+                <!-- 二维码区域 -->
+                <div class="qr-section" id="qrSection">
+                    <div class="qr-toggle" onclick="toggleQRCode()">
+                        <i data-lucide="smartphone"></i>
+                        <span>手机查看验证码</span>
+                        <i data-lucide="chevron-down" id="qrToggleIcon"></i>
+                    </div>
+                    <div class="qr-container" id="qrContainer">
+                        <p>请用手机扫码查看验证码</p>
+                        <p class="qr-hint">扫描后在手机浏览器中查看</p>
+                    </div>
+                </div>
+
+                <form id="mfaForm">
+                    <div class="code-inputs-wrapper" id="totpInputs">
+                        <p class="code-inputs-label">验证码</p>
+                        <div class="code-input-container" id="codeInputGroup">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric" autocomplete="one-time-code">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+                            <input type="text" class="code-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+                        </div>
+                    </div>
+
+                    <div class="code-inputs-wrapper" id="recoveryInputWrapper" style="display: none;">
+                        <p class="code-inputs-label">恢复码</p>
+                        <input type="text" id="recoveryCodeInput" class="modern-input" placeholder="输入 16 位恢复码"
+                               style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(99, 102, 241, 0.3); border-radius: 12px; color: white; text-align: center; font-family: monospace; font-size: 1.1rem;">
+                    </div>
+
+                    <input type="hidden" id="fullCode" name="code">
+                    <input type="hidden" id="verifyMode" value="totp">
+                    <input type="hidden" id="deviceFingerprint" name="device_fingerprint">
+                    <input type="hidden" id="deviceLabel" name="device_label">
+
+                    <!-- 记住此设备（类 Google 行为：30天内跳过 MFA） -->
+                    <label style="display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer; color: rgba(148,163,184,0.85); font-size:0.9rem; user-select:none;">
+                        <input type="checkbox" id="rememberDevice" name="remember_device" value="true"
+                               style="width:16px; height:16px; accent-color: var(--primary); cursor:pointer;">
+                        <span>记住此设备 <strong style="color:var(--primary-light)">30 天</strong>，期间免 MFA 验证</span>
+                    </label>
+
+                    <button type="submit" class="verify-btn" id="verifyBtn" style="margin-top: 20px;">
+                        <i data-lucide="check-circle"></i>
+                        <span>验证并登录</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="card-footer">
+                <div class="footer-links">
+                    <a href="#" class="footer-link" id="switchToRecovery" onclick="toggleVerifyMode('recovery'); return false;">
+                        <i data-lucide="key"></i>
+                        使用恢复码
+                    </a>
+                    <a href="#" class="footer-link" id="switchToTotp" onclick="toggleVerifyMode('totp'); return false;" style="display: none;">
+                        <i data-lucide="shield"></i>
+                        使用验证码
+                    </a>
+                    <a href="/logout" class="footer-link">
+                        <i data-lucide="log-out"></i>
+                        返回登录页
+                    </a>
+                </div>
+                <p class="copyright">&copy; 2025 SSO 认证中心. 保留所有权利。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化图标
+        lucide.createIcons();
+
+        // 页面加载时采集设备指纹
+        (async function initFingerprint() {
+            try {
+                let fp = localStorage.getItem('_device_fp');
+                if (!fp && window.FingerprintJS) {
+                    fp = await FingerprintJS.getFingerprint();
+                    localStorage.setItem('_device_fp', fp);
+                }
+                if (fp) {
+                    document.getElementById('deviceFingerprint').value = fp;
+                    // 设备名称：简单取浏览器+OS
+                    const ua = navigator.userAgent;
+                    const isMobile = /Mobile|Android|iPhone/.test(ua);
+                    const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : '未知系统';
+                    const browser = /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : /Edge/.test(ua) ? 'Edge' : '浏览器';
+                    document.getElementById('deviceLabel').value = `${os} ${browser}${isMobile ? ' (移动端)' : ''}`;
+                }
+            } catch(e) {}
+        })();
+
+        const inputs = document.querySelectorAll('.code-input');
+        const fullCodeInput = document.getElementById('fullCode');
+        const mfaForm = document.getElementById('mfaForm');
+
+        // 处理输入框逻辑
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                // 只允许数字
+                input.value = input.value.replace(/[^0-9]/g, '');
+
+                if (input.value) {
+                    input.classList.add('filled');
+                    input.classList.remove('error');
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                } else {
+                    input.classList.remove('filled');
+                }
+                updateFullCode();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+
+            // 处理粘贴
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const data = e.clipboardData.getData('text').slice(0, 6).replace(/[^0-9]/g, '');
+                if (data.length > 0) {
+                    data.split('').forEach((char, i) => {
+                        if (inputs[i]) {
+                            inputs[i].value = char;
+                            inputs[i].classList.add('filled');
+                        }
+                    });
+                    updateFullCode();
+                    if (data.length === 6) {
+                        mfaForm.dispatchEvent(new Event('submit'));
+                    }
+                }
+            });
+
+            // 聚焦时选中文本
+            input.addEventListener('focus', () => {
+                input.select();
+            });
+        });
+
+        function toggleVerifyMode(mode) {
+            const totpInputs = document.getElementById('totpInputs');
+            const recoveryInputWrapper = document.getElementById('recoveryInputWrapper');
+            const mfaInfo = document.getElementById('mfaInfo');
+            const recoveryInfo = document.getElementById('recoveryInfo');
+            const qrSection = document.getElementById('qrSection');
+            const verifyMode = document.getElementById('verifyMode');
+            const switchToRecovery = document.getElementById('switchToRecovery');
+            const switchToTotp = document.getElementById('switchToTotp');
+
+            if (mode === 'recovery') {
+                totpInputs.style.display = 'none';
+                recoveryInputWrapper.style.display = 'block';
+                mfaInfo.style.display = 'none';
+                recoveryInfo.style.display = 'flex';
+                qrSection.style.display = 'none';
+                verifyMode.value = 'recovery';
+                switchToRecovery.style.display = 'none';
+                switchToTotp.style.display = 'inline-flex';
+                document.getElementById('recoveryCodeInput').focus();
+            } else {
+                totpInputs.style.display = 'block';
+                recoveryInputWrapper.style.display = 'none';
+                mfaInfo.style.display = 'flex';
+                recoveryInfo.style.display = 'none';
+                qrSection.style.display = 'block';
+                verifyMode.value = 'totp';
+                switchToRecovery.style.display = 'inline-flex';
+                switchToTotp.style.display = 'none';
+                inputs[0].focus();
+            }
+        }
+
+        function updateFullCode() {
+            const verifyMode = document.getElementById('verifyMode').value;
+            if (verifyMode === 'totp') {
+                let code = '';
+                inputs.forEach(input => code += input.value);
+                fullCodeInput.value = code;
+            } else {
+                fullCodeInput.value = document.getElementById('recoveryCodeInput').value.trim();
+            }
+        }
+
+        // 获取 URL 参数
+        function getUrlParam(name) {
+            return new URLSearchParams(window.location.search).get(name);
+        }
+
+        // 获取重定向目标
+        function getRedirectTarget() {
+            const redirectUri = getUrlParam('redirect_uri');
+            const clientId = getUrlParam('client_id');
+
+            if (clientId && redirectUri) {
+                const params = new URLSearchParams();
+                params.set('client_id', clientId);
+                params.set('response_type', getUrlParam('response_type') || 'code');
+                params.set('scope', getUrlParam('scope') || '');
+                params.set('state', getUrlParam('state') || '');
+                params.set('redirect_uri', redirectUri);
+                return '/oauth/authorize?' + params.toString();
+            }
+
+            if (redirectUri) return redirectUri;
+            return '/account';
+        }
+
+        // 按钮加载状态
+        function setButtonLoading(button, isLoading) {
+            if (!button) return;
+
+            const originalContent = button.innerHTML;
+            button.setAttribute('data-original-content', originalContent);
+
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `
+                    <span class="loading-spinner"></span>
+                    <span>验证中...</span>
+                `;
+                button.classList.add('opacity-75');
+            } else {
+                button.disabled = false;
+                button.innerHTML = originalContent;
+                button.classList.remove('opacity-75');
+            }
+        }
+
+        // 初始化样式
+        initCustomStyles();
+
+        // 表单提交
+        mfaForm.onsubmit = async (e) => {
+            e.preventDefault();
+            updateFullCode();
+            const code = fullCodeInput.value;
+            const verifyMode = document.getElementById('verifyMode').value;
+            const verifyBtn = document.getElementById('verifyBtn');
+
+            if (verifyMode === 'totp' && code.length !== 6) {
+                showError('请输入完整的 6 位验证码');
+                inputs.forEach(input => {
+                    if (!input.value) {
+                        input.classList.add('error');
+                    }
+                });
+                inputs[0].focus();
+                return;
+            }
+
+            if (verifyMode === 'recovery' && code.length < 8) {
+                showError('请输入有效的恢复码');
+                document.getElementById('recoveryCodeInput').focus();
+                return;
+            }
+
+            setButtonLoading(verifyBtn, true);
+
+            try {
+                const formData = new FormData();
+                formData.append('code', code);
+                // 记住设备相关字段
+                const rememberDevice = document.getElementById('rememberDevice').checked;
+                formData.append('remember_device', rememberDevice ? 'true' : 'false');
+                formData.append('device_fingerprint', document.getElementById('deviceFingerprint').value || '');
+                formData.append('device_label', document.getElementById('deviceLabel').value || '');
+
+                const response = await fetch('/api/mfa/verify', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('验证成功,正在跳转...');
+                    setTimeout(() => {
+                        window.location.href = getRedirectTarget();
+                    }, 1000);
+                } else {
+                    showError(data.detail || '验证码错误,请重试');
+                    if (verifyMode === 'totp') {
+                        inputs.forEach(input => {
+                            input.value = '';
+                            input.classList.remove('filled');
+                            input.classList.add('error');
+                        });
+                        inputs[0].focus();
+                        setTimeout(() => {
+                            inputs.forEach(input => input.classList.remove('error'));
+                        }, 500);
+                    } else {
+                        const recInput = document.getElementById('recoveryCodeInput');
+                        recInput.value = '';
+                        recInput.focus();
+                    }
+                }
+            } catch (error) {
+                showError('网络连接异常,请检查网络');
+            } finally {
+                setButtonLoading(verifyBtn, false);
+            }
+        };
+
+        // 二维码功能
+        function toggleQRCode() {
+            const container = document.getElementById('qrContainer');
+            const icon = document.getElementById('qrToggleIcon');
+            container.classList.toggle('show');
+
+            if (container.classList.contains('show')) {
+                icon.setAttribute('data-lucide', 'chevron-up');
+                generateQRCode();
+            } else {
+                icon.setAttribute('data-lucide', 'chevron-down');
+            }
+            lucide.createIcons();
+        }
+
+        let qrCodeGenerated = false; // 防止重复生成
+
+        function generateQRCode() {
+            if (qrCodeGenerated) return; // 已生成则不再生成
+
+            const container = document.getElementById('qrContainer');
+            const sessionToken = "{{ session_token }}";
+            const currentUrl = window.location.origin;
+            const viewCodeUrl = `${currentUrl}/mfa/view-code?session_token=${sessionToken}`;
+
+            // 检查 QRCode 是否加载
+            if (typeof QRCode === 'undefined') {
+                console.error('QRCode library not loaded');
+                const hint = document.querySelector('.qr-hint');
+                if (hint) {
+                    hint.textContent = '二维码功能暂不可用,请直接输入验证码';
+                    hint.style.color = '#ef4444';
+                }
+                return;
+            }
+
+            try {
+                // 清空容器中的旧内容
+                const oldCanvas = container.querySelector('canvas');
+                if (oldCanvas) {
+                    oldCanvas.remove();
+                }
+
+                // 创建一个div来包含二维码
+                const qrDiv = document.createElement('div');
+                qrDiv.id = 'qrCodeDiv';
+                qrDiv.style.display = 'inline-block';
+
+                // 将文字说明移到前面
+                const firstP = container.querySelector('p:first-child');
+                if (firstP) {
+                    container.insertBefore(qrDiv, firstP.nextSibling);
+                } else {
+                    container.appendChild(qrDiv);
+                }
+
+                // 使用 QRCode 构造函数生成二维码
+                new QRCode(qrDiv, {
+                    text: viewCodeUrl,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#1e293b',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                qrCodeGenerated = true;
+                console.log('二维码生成成功:', viewCodeUrl);
+            } catch (err) {
+                console.error('生成二维码失败:', err);
+                const hint = document.querySelector('.qr-hint');
+                if (hint) {
+                    hint.textContent = '二维码生成失败: ' + err.message;
+                    hint.style.color = '#ef4444';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

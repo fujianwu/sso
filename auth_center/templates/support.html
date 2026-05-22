@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技术支持 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .support-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+            position: relative; z-index: 1;
+        }
+        .page-head {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .page-head .eyebrow {
+            font-family: var(--font-display);
+            font-size: 0.6rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            opacity: 0.8;
+        }
+        .page-head h1 {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3vw, 2.4rem);
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-color) 70%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+        }
+        .page-head p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 3rem;
+        }
+        .support-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            text-align: center;
+            transition: all 0.25s;
+            position: relative; overflow: hidden;
+        }
+        .support-card::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            opacity: 0; transition: opacity 0.25s;
+        }
+        .support-card:hover { border-color: var(--border-light); transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,229,255,0.08); }
+        .support-card:hover::before { opacity: 1; }
+        .support-card-icon {
+            width: 48px; height: 48px;
+            background: rgba(0,229,255,0.08);
+            border: 1px solid rgba(0,229,255,0.2);
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem;
+        }
+        .support-card-icon i { width: 22px; height: 22px; color: var(--primary-color); }
+        .support-card h3 {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .support-card p { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem; }
+
+        .faq-wrap {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            position: relative; overflow: hidden;
+        }
+        .faq-wrap::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            opacity: 0.4;
+        }
+        .faq-title {
+            font-family: var(--font-display);
+            font-size: 0.65rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .faq-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-light), transparent); }
+        .faq-item { border-bottom: 1px solid var(--border-color); padding: 1.25rem 0; }
+        .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .faq-q {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
+            display: flex; align-items: flex-start; gap: 8px;
+            cursor: pointer;
+        }
+        .faq-q i { width: 16px; height: 16px; color: var(--primary-color); flex-shrink: 0; margin-top: 2px; }
+        .faq-a { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; padding-left: 24px; }
+        .faq-a a { color: var(--primary-color); text-decoration: none; }
+        .faq-a a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+
+    <div class="support-wrap">
+        <div class="page-head">
+            <div class="eyebrow">Support</div>
+            <h1>技术支持</h1>
+            <p>遇到问题？这里有你需要的答案。</p>
+        </div>
+
+        <!-- 支持渠道 -->
+        <div class="support-grid">
+            <div class="support-card">
+                <div class="support-card-icon"><i data-lucide="book-open"></i></div>
+                <h3>开发文档</h3>
+                <p>接入指南、API 参考、Python SDK 使用说明。</p>
+                <a href="/docs" class="btn btn-primary btn-sm">查看文档</a>
+            </div>
+            <div class="support-card">
+                <div class="support-card-icon"><i data-lucide="code-2"></i></div>
+                <h3>API 参考</h3>
+                <p>完整的接口文档，包含请求/响应示例。</p>
+                <a href="/api" class="btn btn-secondary btn-sm">查看 API</a>
+            </div>
+            <div class="support-card">
+                <div class="support-card-icon"><i data-lucide="info"></i></div>
+                <h3>关于项目</h3>
+                <p>了解平台的技术栈、设计理念和开发历程。</p>
+                <a href="/about" class="btn btn-secondary btn-sm">了解更多</a>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-wrap">
+            <div class="faq-title">常见问题</div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>如何接入 SSO？</div>
+                <div class="faq-a">
+                    登录后进入<a href="/admin">管理后台</a>，在「应用管理」中添加你的应用，获取 Client ID 和 Client Secret。然后参照<a href="/docs">接入文档</a>完成 OAuth 2.0 对接。使用 Python SDK 的话通常 30 分钟以内可以跑通。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>支持哪些认证协议？</div>
+                <div class="faq-a">
+                    目前支持 OAuth 2.0 授权码流程（Authorization Code Flow），这是最安全、最通用的接入方式。暂不支持 SAML。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>提供哪些语言的 SDK？</div>
+                <div class="faq-a">
+                    目前提供官方 Python SDK，同时内置了 Flask 和 FastAPI 的集成示例。其他语言可以直接调用 REST API，协议标准化，对接并不复杂。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>用户数据存在哪里？</div>
+                <div class="faq-a">
+                    所有数据存储在本平台的 SQLite 数据库中，不会同步到任何第三方。密码使用 bcrypt 加盐哈希存储，永不明文保存。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>接入是收费的吗？</div>
+                <div class="faq-a">
+                    完全免费，这是个人项目，面向有需要的朋友开放接入。没有商业化计划。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>服务可用性如何？</div>
+                <div class="faq-a">
+                    这是个人维护的项目，尽力保持稳定运行，但不提供 SLA 保证。建议接入时做好降级预案，比如在 SSO 不可用时允许用户通过备用方式登录。
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-q"><i data-lucide="chevron-right"></i>遇到 Bug 或问题怎么办？</div>
+                <div class="faq-a">
+                    请通过<a href="/contact">联系页面</a>提交，描述清楚问题和复现步骤，会尽快处理。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include "footer.html" %}
+    <script>lucide.createIcons();</script>
+</body>
+</html>

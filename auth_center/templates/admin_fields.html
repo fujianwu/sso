@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>用户字段管理 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}" />
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        .field-management-container { max-width: 1200px; margin: 0 auto; }
+        .action-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+        .data-table th, .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .data-table th { background: var(--bg-secondary); font-weight: 500; color: var(--text-secondary); }
+        .data-table tbody tr:hover { background: var(--bg-gray); }
+        .btn-sm { padding: 6px 12px; font-size: 13px; margin-right: 8px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background-color: #fff; margin: auto; padding: 32px; border-radius: 12px; box-shadow: var(--shadow-hover); width: 90%; max-width: 700px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-title { font-size: 24px; font-weight: 400; }
+        .close { color: var(--text-secondary); font-size: 32px; font-weight: 300; cursor: pointer; line-height: 1; }
+        .close:hover { color: var(--text-primary); }
+        .field-type-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: var(--primary-color); color: white; }
+        .options-area { margin-top: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-gray); }
+        .options-area textarea { font-family: monospace; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .checkbox-label input[type="checkbox"] { width: 16px; height: 16px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/admin" class="navbar-brand">🔒 管理控制台</a>
+            <div class="navbar-menu">
+                <a href="/account" class="navbar-link">账户管理</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="field-management-container">
+            <div class="card">
+                <h1 class="card-title">用户字段管理</h1>
+                <p class="card-subtitle">自定义用户资料字段,实现灵活的用户信息扩展。</p>
+
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="openFieldModal()">➕ 添加新字段</button>
+                </div>
+
+                <div id="fieldsListContainer">
+                    <p class="text-secondary">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fieldModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="fieldModalTitle">添加新字段</h2>
+                <span class="close" onclick="closeFieldModal()">&times;</span>
+            </div>
+            <form id="fieldForm" onsubmit="handleFieldSubmit(event)">
+                <input type="hidden" id="original_field_key">
+
+                <div class="form-group">
+                    <label class="form-label" for="field_key">字段 Key (必填)</label>
+                    <input type="text" id="field_key" name="field_key" class="form-input" required pattern="^[a-z0-9_]+$" title="只能包含小写字母、数字和下划线">
+                    <div class="form-hint">字段的唯一标识,只能包含小写字母、数字和下划线。创建后不可修改。</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="field_label">字段标签 (必填)</label>
+                    <input type="text" id="field_label" name="field_label" class="form-input" required>
+                    <div class="form-hint">用户界面上显示的名称,如"部门"、"工号"。</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="field_type">字段类型 (必填)</label>
+                    <select id="field_type" name="field_type" class="form-input" required onchange="toggleOptionsArea()">
+                        <option value="text">文本 (text)</option>
+                        <option value="textarea">多行文本 (textarea)</option>
+                        <option value="number">数字 (number)</option>
+                        <option value="date">日期 (date)</option>
+                        <option value="email">邮箱 (email)</option>
+                        <option value="phone">电话 (phone)</option>
+                        <option value="select">下拉单选 (select)</option>
+                        <option value="radio">单选按钮 (radio)</option>
+                        <option value="checkbox">多选框 (checkbox)</option>
+                    </select>
+                </div>
+
+                <div id="optionsArea" class="options-area" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="field_options">选项配置 (JSON 格式)</label>
+                        <textarea id="field_options" name="field_options" class="form-input" rows="5" placeholder='[{"label": "选项一", "value": "opt1"}, {"label": "选项二", "value": "opt2"}]'></textarea>
+                        <div class="form-hint">用于 Select, Radio, Checkbox 类型。必须是 JSON 数组,每个元素包含 label 和 value 键。</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">配置</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="is_required" name="is_required">
+                            是否必填
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show_in_profile" name="show_in_profile" checked>
+                            在个人资料页显示
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show_in_oauth" name="show_in_oauth">
+                            在 OAuth 授权页面返回
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="display_order">显示顺序</label>
+                    <input type="number" id="display_order" name="display_order" class="form-input" value="0">
+                </div>
+
+                <div id="fieldFormError" class="form-error"></div>
+                <div class="mt-3 flex gap-2">
+                    <button type="submit" id="fieldFormBtn" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeFieldModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script>
+        let allFields = [];
+
+        async function safeApiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                credentials: 'include'
+            });
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                throw new Error(`服务器返回非 JSON 响应 (${response.status}): ${responseText.substring(0, 100)}`);
+            }
+
+            if (!response.ok) {
+                const errorMessage = data.detail || data.message || `请求失败 (${response.status})`;
+                throw new Error(errorMessage);
+            }
+
+            return data;
+        }
+
+        const fieldTypeMap = {
+            'text': '文本',
+            'textarea': '多行文本',
+            'number': '数字',
+            'date': '日期',
+            'email': '邮箱',
+            'phone': '电话',
+            'select': '下拉单选',
+            'radio': '单选按钮',
+            'checkbox': '多选框'
+        };
+
+        function toggleOptionsArea() {
+            const type = document.getElementById('field_type').value;
+            const optionsArea = document.getElementById('optionsArea');
+            if (['select', 'radio', 'checkbox'].includes(type)) {
+                optionsArea.style.display = 'block';
+                document.getElementById('field_options').required = true;
+            } else {
+                optionsArea.style.display = 'none';
+                document.getElementById('field_options').required = false;
+            }
+        }
+
+        async function loadFieldsList() {
+            try {
+                const data = await safeApiRequest('/api/admin/fields');
+                allFields = data;
+                renderFieldsList();
+            } catch (error) {
+                document.getElementById('fieldsListContainer').innerHTML =
+                    `<p class="form-error">加载字段列表失败: ${error.message}</p>`;
+            }
+        }
+
+        function renderFieldsList() {
+            const container = document.getElementById('fieldsListContainer');
+            if (allFields.length === 0) {
+                container.innerHTML = '<p class="text-secondary">当前没有自定义字段。</p>';
+                return;
+            }
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>标签 (Label)</th>
+                            <th>Key</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>资料页显示</th>
+                            <th>OAuth 返回</th>
+                            <th>顺序</th>
+                            <th style="width: 150px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            allFields.forEach(field => {
+                html += `
+                    <tr>
+                        <td>${field.field_label}</td>
+                        <td><code>${field.field_key}</code></td>
+                        <td><span class="field-type-tag">${fieldTypeMap[field.field_type] || field.field_type}</span></td>
+                        <td>${field.is_required ? '✅' : '❌'}</td>
+                        <td>${field.show_in_profile ? '✅' : '❌'}</td>
+                        <td>${field.show_in_oauth ? '✅' : '❌'}</td>
+                        <td>${field.display_order}</td>
+                        <td class="flex gap-1">
+                            <button class="btn btn-sm btn-primary" onclick="openFieldModal('${field.field_key}')">编辑</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteField('${field.field_key}', '${field.field_label}')">删除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function openFieldModal(fieldKey = null) {
+            const isEdit = !!fieldKey;
+            const modalTitle = document.getElementById('fieldModalTitle');
+            const fieldKeyInput = document.getElementById('field_key');
+            const originalFieldKeyInput = document.getElementById('original_field_key');
+            const fieldFormBtn = document.getElementById('fieldFormBtn');
+            const fieldFormError = document.getElementById('fieldFormError');
+
+            fieldFormError.textContent = '';
+            fieldKeyInput.disabled = isEdit;
+            fieldFormBtn.textContent = isEdit ? '保存修改' : '添加字段';
+            modalTitle.textContent = isEdit ? '编辑字段' : '添加新字段';
+            originalFieldKeyInput.value = fieldKey || '';
+
+            if (isEdit) {
+                const field = allFields.find(f => f.field_key === fieldKey);
+                if (!field) {
+                    ssoUtils.showAlert('字段不存在', 'error');
+                    return;
+                }
+                fieldKeyInput.value = field.field_key;
+                document.getElementById('field_label').value = field.field_label;
+                document.getElementById('field_type').value = field.field_type;
+                document.getElementById('field_options').value = field.field_options || '';
+                document.getElementById('is_required').checked = field.is_required;
+                document.getElementById('show_in_profile').checked = field.show_in_profile;
+                document.getElementById('show_in_oauth').checked = field.show_in_oauth;
+                document.getElementById('display_order').value = field.display_order;
+            } else {
+                document.getElementById('fieldForm').reset();
+                document.getElementById('is_required').checked = false;
+                document.getElementById('show_in_profile').checked = true;
+                document.getElementById('show_in_oauth').checked = false;
+                document.getElementById('display_order').value = 0;
+            }
+
+            toggleOptionsArea();
+            document.getElementById('fieldModal').classList.add('active');
+        }
+
+        function closeFieldModal() {
+            document.getElementById('fieldModal').classList.remove('active');
+            document.getElementById('fieldForm').reset();
+        }
+
+        async function handleFieldSubmit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const originalFieldKey = form.original_field_key.value;
+            const isEdit = !!originalFieldKey;
+            const fieldKey = form.field_key.value;
+            const fieldType = form.field_type.value;
+            const fieldOptions = form.field_options.value.trim() || null;
+            const errorEl = document.getElementById('fieldFormError');
+            errorEl.textContent = '';
+
+            if (['select', 'radio', 'checkbox'].includes(fieldType)) {
+                if (!fieldOptions) {
+                    errorEl.textContent = '该字段类型需要提供选项配置';
+                    return;
+                }
+                try {
+                    const options = JSON.parse(fieldOptions);
+                    if (!Array.isArray(options) || options.length === 0 || !options.every(o => o.label && o.value)) {
+                        throw new Error('格式错误');
+                    }
+                } catch {
+                    errorEl.textContent = '选项配置格式错误,必须是包含 label 和 value 的 JSON 数组。';
+                    return;
+                }
+            }
+
+            const fieldData = {
+                field_label: form.field_label.value,
+                field_type: fieldType,
+                field_options: fieldOptions,
+                is_required: form.is_required.checked,
+                show_in_profile: form.show_in_profile.checked,
+                show_in_oauth: form.show_in_oauth.checked,
+                display_order: parseInt(form.display_order.value) || 0
+            };
+
+            try {
+                let url, method, body;
+
+                if (isEdit) {
+                    url = `/api/admin/fields/${originalFieldKey}`;
+                    method = 'PUT';
+                    body = JSON.stringify(fieldData);
+                } else {
+                    url = '/api/admin/fields';
+                    method = 'POST';
+                    body = JSON.stringify({
+                        field_key: fieldKey,
+                        ...fieldData
+                    });
+                }
+
+                const data = await safeApiRequest(url, { method, body });
+                ssoUtils.showAlert(data.message, 'success');
+                closeFieldModal();
+                loadFieldsList();
+
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        async function deleteField(fieldKey, fieldLabel) {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '确认删除字段',
+                message: `确定要删除字段 "${fieldLabel}" (Key: ${fieldKey}) 吗? 此操作将同时删除所有用户在该字段下的数据,不可逆!`,
+                confirmText: '删除',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const data = await safeApiRequest(`/api/admin/fields/${fieldKey}`, { method: 'DELETE' });
+                ssoUtils.showAlert(data.message, 'success');
+                loadFieldsList();
+            } catch (error) {
+                ssoUtils.showAlert('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFieldsList);
+
+        window.onclick = function(event) {
+            const fieldModal = document.getElementById('fieldModal');
+            if (event.target === fieldModal) {
+                closeFieldModal();
+            }
+        }
+    </script>
+    <script>
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>

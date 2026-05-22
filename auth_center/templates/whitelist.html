@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>白名单管理 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}" />
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        .whitelist-container { max-width: 1200px; margin: 0 auto; }
+        .action-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .whitelist-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .whitelist-table th, .whitelist-table td { padding: 12px; border: 1px solid var(--border-color); text-align: left; }
+        .whitelist-table th { background: var(--bg-secondary); font-weight: 600; }
+        .whitelist-table tbody tr:hover { background: var(--bg-secondary); }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .email-count { font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background-color: var(--bg-primary); margin: auto; padding: 24px; border: 1px solid var(--border-color); border-radius: 8px; width: 90%; max-width: 500px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: 600; }
+        .close { color: var(--text-secondary); font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: var(--text-primary); }
+        .file-upload-area { border: 2px dashed var(--border-color); border-radius: 8px; padding: 32px; text-align: center; margin: 16px 0; cursor: pointer; transition: all 0.2s; }
+        .file-upload-area:hover { border-color: var(--primary-color); background: var(--bg-secondary); }
+        .file-upload-area.dragover { border-color: var(--primary-color); background: var(--bg-secondary); }
+        .file-info { margin-top: 12px; font-size: 14px; color: var(--text-secondary); }
+        .empty-state { text-align: center; padding: 48px 24px; color: var(--text-secondary); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; }
+        .status-enabled { background: #d4edda; color: #155724; }
+        .status-disabled { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/admin" class="navbar-brand">🔒 管理控制台</a>
+            <div class="navbar-menu">
+                <a href="/account" class="navbar-link">账户管理</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="whitelist-container">
+            <div class="card">
+                <h1 class="card-title">注册白名单管理</h1>
+                <p class="card-subtitle">管理允许自主注册的邮箱列表。若启用白名单,只有列表中的邮箱才能注册。</p>
+
+                <div class="action-bar">
+                    <button class="btn btn-primary" onclick="openAddModal()">➕ 添加邮箱</button>
+                    <button class="btn btn-primary" onclick="openImportModal()">📄 批量导入</button>
+                    <button class="btn btn-secondary" onclick="toggleWhitelist()" id="toggleBtn">
+                        <span id="toggleText">加载中...</span>
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllEmails()">🗑️ 清空所有</button>
+                </div>
+
+                <div class="email-count">
+                    状态: <span id="statusBadge" class="status-badge">加载中...</span>
+                    &nbsp;&nbsp;
+                    邮箱数量: <strong id="emailCount">0</strong>
+                </div>
+
+                <div id="whitelistContent">
+                    <p class="text-secondary">加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加邮箱模态框 -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">添加邮箱</h2>
+                <span class="close" onclick="closeAddModal()">&times;</span>
+            </div>
+            <form id="addEmailForm" onsubmit="handleAddEmail(event)">
+                <div class="form-group">
+                    <label class="form-label" for="new_email">邮箱地址</label>
+                    <input type="email" id="new_email" name="email" class="form-input" required placeholder="example@domain.com">
+                </div>
+                <div id="addEmailError" class="form-error"></div>
+                <div class="mt-3 flex gap-2">
+                    <button type="submit" class="btn btn-primary">添加</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 批量导入模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">批量导入邮箱</h2>
+                <span class="close" onclick="closeImportModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">选择文件</label>
+                <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
+                    <div>点击选择文件或拖拽文件到此处</div>
+                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+                        支持 .txt 格式,每行一个邮箱地址。
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="handleFileSelect(event)">
+                <div id="fileInfo" class="file-info"></div>
+            </div>
+            <div id="importError" class="form-error"></div>
+            <div id="importResult" class="result-box" style="display: none;"></div>
+            <div class="mt-3 flex gap-2">
+                <button id="importBtn" class="btn btn-primary" onclick="handleImport()" disabled>导入</button>
+                <button type="button" class="btn btn-secondary" onclick="closeImportModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script>
+        let whitelistEmails = [];
+        let isWhitelistEnabled = false;
+        let selectedFile = null;
+
+        async function safeApiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                credentials: 'include'
+            });
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                throw new Error(`服务器返回非 JSON 响应 (${response.status}): ${responseText.substring(0, 100)}`);
+            }
+
+            if (!response.ok) {
+                const errorMessage = data.detail || data.message || `请求失败 (${response.status})`;
+                throw new Error(errorMessage);
+            }
+
+            return data;
+        }
+
+        async function loadWhitelist() {
+            try {
+                const data = await safeApiRequest('/api/admin/whitelist');
+                whitelistEmails = data.emails || [];
+                isWhitelistEnabled = data.enabled || false;
+                renderWhitelist();
+            } catch (error) {
+                document.getElementById('whitelistContent').innerHTML =
+                    `<p class="form-error">加载白名单失败: ${error.message}</p>`;
+            }
+        }
+
+        function renderWhitelist() {
+            const container = document.getElementById('whitelistContent');
+            const countEl = document.getElementById('emailCount');
+            const statusBadge = document.getElementById('statusBadge');
+            const toggleBtn = document.getElementById('toggleText');
+
+            countEl.textContent = whitelistEmails.length;
+
+            if (isWhitelistEnabled) {
+                statusBadge.textContent = '已启用';
+                statusBadge.className = 'status-badge status-enabled';
+                toggleBtn.textContent = '❌ 禁用白名单';
+                toggleBtn.parentElement.className = 'btn btn-danger';
+            } else {
+                statusBadge.textContent = '已禁用';
+                statusBadge.className = 'status-badge status-disabled';
+                toggleBtn.textContent = '✅ 启用白名单';
+                toggleBtn.parentElement.className = 'btn btn-success';
+            }
+
+            if (whitelistEmails.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📧</div>
+                        <p>白名单为空。请添加邮箱或导入文件。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="whitelist-table">
+                    <thead>
+                        <tr>
+                            <th>邮箱地址</th>
+                            <th style="width: 100px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            whitelistEmails.forEach(email => {
+                html += `
+                    <tr>
+                        <td>${email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEmail('${email}')">删除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = html;
+        }
+
+        async function toggleWhitelist() {
+            const action = isWhitelistEnabled ? 'disable' : 'enable';
+            const confirmMsg = isWhitelistEnabled
+                ? '禁用后所有用户都可以注册。'
+                : '启用后只有列表中的邮箱才能注册。';
+
+            const confirmed = await ssoUtils.showConfirm({
+                title: isWhitelistEnabled ? '确认禁用白名单' : '确认启用白名单',
+                message: confirmMsg,
+                confirmText: isWhitelistEnabled ? '禁用' : '启用',
+                type: 'warning'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const data = await safeApiRequest(`/api/admin/whitelist/${action}`, { method: 'POST' });
+                ssoUtils.showAlert(data.message, 'success');
+                loadWhitelist();
+            } catch (error) {
+                ssoUtils.showAlert('操作失败: ' + error.message, 'error');
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+            document.getElementById('addEmailError').textContent = '';
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('addEmailForm').reset();
+        }
+
+        async function handleAddEmail(event) {
+            event.preventDefault();
+            const email = document.getElementById('new_email').value;
+            const errorEl = document.getElementById('addEmailError');
+            errorEl.textContent = '';
+
+            try {
+                const data = await safeApiRequest('/api/admin/whitelist/add', {
+                    method: 'POST',
+                    body: JSON.stringify({ email: email })
+                });
+                ssoUtils.showAlert(data.message, 'success');
+                closeAddModal();
+                loadWhitelist();
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        async function deleteEmail(email) {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '确认删除',
+                message: `确定要从白名单中删除邮箱 ${email} 吗？`,
+                confirmText: '删除',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const data = await safeApiRequest('/api/admin/whitelist/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ email: email })
+                });
+                ssoUtils.showAlert(data.message, 'success');
+                loadWhitelist();
+            } catch (error) {
+                ssoUtils.showAlert('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        async function clearAllEmails() {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '确认清空',
+                message: '确定要清空白名单中的所有邮箱吗? 此操作不可逆!',
+                confirmText: '清空',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const data = await safeApiRequest('/api/admin/whitelist/clear', { method: 'POST' });
+                ssoUtils.showAlert(data.message, 'success');
+                loadWhitelist();
+            } catch (error) {
+                ssoUtils.showAlert('清空失败: ' + error.message, 'error');
+            }
+        }
+
+        function openImportModal() {
+            document.getElementById('importModal').classList.add('active');
+            document.getElementById('importError').textContent = '';
+            document.getElementById('importResult').style.display = 'none';
+            document.getElementById('importBtn').disabled = true;
+            selectedFile = null;
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('active');
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').textContent = '';
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileInfo').textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                document.getElementById('importBtn').disabled = false;
+            }
+        }
+
+        const fileUploadArea = document.getElementById('fileUploadArea');
+
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.txt')) {
+                selectedFile = file;
+                document.getElementById('fileInfo').textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                document.getElementById('importBtn').disabled = false;
+            } else {
+                ssoUtils.showAlert('请选择 .txt 文件', 'error');
+            }
+        });
+
+        async function handleImport() {
+            if (!selectedFile) return;
+
+            const errorEl = document.getElementById('importError');
+            const resultEl = document.getElementById('importResult');
+            errorEl.textContent = '';
+            resultEl.style.display = 'none';
+
+            try {
+                const text = await selectedFile.text();
+                const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l);
+
+                if (lines.length === 0) {
+                    errorEl.textContent = '文件为空';
+                    return;
+                }
+
+                const emails = [];
+                for (const line of lines) {
+                    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(line)) {
+                        emails.push(line);
+                    } else {
+                        console.warn(`跳过无效邮箱格式: ${line}`);
+                    }
+                }
+
+                if (emails.length === 0) {
+                    errorEl.textContent = '文件中没有找到有效的邮箱地址';
+                    return;
+                }
+
+                const response = await safeApiRequest('/api/admin/whitelist/import', {
+                    method: 'POST',
+                    body: JSON.stringify({ emails: emails })
+                });
+
+                ssoUtils.showAlert(`导入完成: 成功 ${response.success} 个, 已存在 ${response.skipped || 0} 个。`, 'success');
+
+                setTimeout(() => {
+                    loadWhitelist();
+                    closeImportModal();
+                }, 1500);
+
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadWhitelist);
+
+        window.onclick = function(event) {
+            const addModal = document.getElementById('addModal');
+            const importModal = document.getElementById('importModal');
+            if (event.target === addModal) {
+                closeAddModal();
+            }
+            if (event.target === importModal) {
+                closeImportModal();
+            }
+        }
+    </script>
+    <script>
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>

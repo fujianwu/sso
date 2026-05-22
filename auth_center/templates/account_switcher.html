@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>切換賬戶 - SSO 認證中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/account-switcher.css') }}">
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="navbar-brand">
+                <span class="navbar-brand-icon">🔐</span>
+                <span>SSO 認證中心</span>
+            </a>
+            <div class="navbar-menu">
+                {% if current_user %}
+                <a href="/account" class="navbar-link">用戶中心</a>
+                <a href="javascript:void(0)" onclick="AccountSwitcher.handleLogoutCurrent()" class="navbar-link">退出当前账户</a>
+                {% else %}
+                <a href="/login" class="navbar-link">登錄</a>
+                <a href="/register" class="navbar-link">註冊</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+        <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <h1 class="card-title">切換賬戶</h1>
+            <p class="card-subtitle">在已保存的賬戶之間快速切換</p>
+
+            {% if current_user %}
+            <div class="alert alert-info" style="margin-bottom: 2rem;">
+                <div class="alert-icon">ℹ️</div>
+                <div class="alert-content">
+                    <div class="alert-title">當前登錄</div>
+                    <div>您當前以 <strong>{{ current_user.name }}</strong> ({{ current_user.email }}) 的身份登錄</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div id="accountSwitcherContainer">
+                <p class="text-secondary">加載中...</p>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <a href="/login" class="add-account-btn">
+                    <span class="add-account-icon">➕</span>
+                    <span>添加其他賬戶</span>
+                </a>
+            </div>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+                <h3 style="font-size: 1.125rem; margin-bottom: 1rem;">使用說明</h3>
+                <ul style="color: var(--text-secondary); font-size: 0.875rem; line-height: 1.8;">
+                    <li>每次登錄後,系統會自動保存您的賬戶信息到本地瀏覽器</li>
+                    <li>您可以在多個賬戶之間快速切換,無需重複輸入密碼</li>
+                    <li>同一用戶只能保持一個活躍會話,新登錄會自動登出舊設備</li>
+                    <li>移除賬戶只會從本地列表中刪除,不會影響服務器上的賬戶</li>
+                    <li>如果長時間未使用,會話可能會過期,需要重新登錄</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/account-switcher.js"></script>
+    <script>
+        // 頁面加載時渲染賬戶列表
+        document.addEventListener('DOMContentLoaded', function() {
+            AccountSwitcher.renderSwitcher('accountSwitcherContainer');
+        });
+    </script>
+</body>
+</html>

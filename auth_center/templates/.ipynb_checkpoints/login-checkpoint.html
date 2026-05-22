@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 — SSO 认证中心</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <script src="/static/js/lucide.js"></script>
+    <script>
+        !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).FingerprintJS=e()}(this,(function(){"use strict";const t=()=>{const t=window.screen;return{width:t.width,height:t.height,colorDepth:t.colorDepth,pixelDepth:t.pixelDepth}};const e=()=>navigator.languages?[...navigator.languages]:navigator.language?[navigator.language]:[];const n=()=>({platform:navigator.platform,vendor:navigator.vendor,cookieEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack||window.doNotTrack,hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:navigator.deviceMemory});const o=async()=>{const t=[];try{const e=await navigator.mediaDevices.enumerateDevices();t.push(...e.map(t=>t.kind))}catch(t){}return t};const r=()=>{try{const t=document.createElement("canvas"),e=t.getContext("2d");e.textBaseline="top",e.font="14px 'Arial'",e.fillStyle="#f60",e.fillRect(125,1,62,20),e.fillStyle="#069",e.fillText("BrowserFingerprint",2,15),e.fillStyle="rgba(102,204,0,0.7)",e.fillText("BrowserFingerprint",4,17);return t.toDataURL()}catch(t){return""}};const i=async()=>{const t=[navigator.userAgent,...e(),...Object.values(n()),r(),...Object.values(t())].join("|"),i=new TextEncoder().encode(t),a=await crypto.subtle.digest("SHA-256",i);return Array.from(new Uint8Array(a)).map(t=>t.toString(16).padStart(2,"0")).join("")};return{getFingerprint:i}}));
+    </script>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+            --ink:#0d0f14;--surface:#13151c;--panel:#1a1d27;
+            --border:rgba(255,255,255,0.07);--border-hi:rgba(255,255,255,0.15);
+            --cyan:#00d4ff;--cyan-dim:rgba(0,212,255,0.12);--cyan-glow:rgba(0,212,255,0.25);
+            --purple:#7c6cf4;--green:#00e5a0;--red:#ff4d6a;--amber:#ffc800;
+            --text-1:#f0f2f8;--text-2:#8890a8;--text-3:#4a5068;
+            --r:12px;--r-sm:8px;
+            --mono:'DM Mono',monospace;--sans:'DM Sans',-apple-system,sans-serif;
+        }
+        html,body{height:100%;background:var(--ink);color:var(--text-1);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+        /* BG */
+        .bg{position:fixed;inset:0;z-index:0;overflow:hidden;
+            background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(124,108,244,.08) 0%,transparent 60%),
+                        radial-gradient(ellipse 60% 50% at 80% 90%,rgba(0,212,255,.06) 0%,transparent 60%)}
+        .bg::before{content:'';position:absolute;inset:0;
+            background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+            background-size:48px 48px}
+        .orb{position:absolute;border-radius:50%;filter:blur(80px)}
+        .orb-1{width:500px;height:500px;background:rgba(124,108,244,.1);top:-150px;left:-150px;animation:drift 18s ease-in-out infinite}
+        .orb-2{width:400px;height:400px;background:rgba(0,212,255,.07);bottom:-100px;right:-100px;animation:drift 18s ease-in-out infinite;animation-delay:-9s;animation-direction:reverse}
+        @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.08)}}
+
+        /* LAYOUT */
+        .page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1fr 480px 1fr;align-items:center;padding:24px}
+
+        /* SIDE */
+        .side-info{grid-column:1;padding:0 32px;display:flex;flex-direction:column;gap:28px}
+        .brand{display:flex;align-items:center;gap:10px}
+        .shield-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--cyan-glow)}
+        .shield-mark svg{width:18px;height:18px;color:#fff}
+        .brand-name{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--text-2);text-transform:uppercase}
+        .side-headline{font-size:clamp(20px,2vw,28px);font-weight:600;line-height:1.3;color:var(--text-1)}
+        .side-headline em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .trust-badges{display:flex;flex-direction:column;gap:10px}
+        .badge{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)}
+        .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 6px var(--green)}
+
+        /* CARD */
+        .card{grid-column:2;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:40px;
+            box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03) inset;position:relative;overflow:hidden}
+        .card::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--cyan-glow),transparent)}
+
+        .card-header{text-align:center;margin-bottom:28px}
+        .card-title{font-size:21px;font-weight:600;color:var(--text-1);margin-bottom:5px}
+        .card-sub{font-size:13px;color:var(--text-2)}
+
+        /* TABS */
+        .tab-row{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px;margin-bottom:24px}
+        .tab-btn{flex:1;padding:8px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-radius:6px;color:var(--text-2);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans)}
+        .tab-btn svg{width:14px;height:14px}
+        .tab-btn.active{background:var(--panel);color:var(--text-1);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+        /* ALERTS */
+        .alert{display:none;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:var(--r-sm);font-size:13px;margin-bottom:14px;animation:slideIn .2s ease}
+        .alert.visible{display:flex}
+        .alert svg{width:15px;height:15px;flex-shrink:0;margin-top:1px}
+        .alert-error{background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.25);color:var(--red)}
+        .alert-success{background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.2);color:var(--green)}
+        .alert-warn{background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.2);color:var(--amber)}
+        @keyframes slideIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+        .shake{animation:shake .35s ease}
+
+        /* LOCKOUT */
+        .lockout-bar{display:none;align-items:center;gap:10px;background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.25);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px}
+        .lockout-bar.visible{display:flex}
+        .lockout-bar svg{width:15px;height:15px;flex-shrink:0}
+        .lockout-timer{font-family:var(--mono);font-weight:500;margin-left:auto}
+
+        /* FORM */
+        .form-field{margin-bottom:14px}
+        .field-label{display:block;font-size:11.5px;font-weight:500;color:var(--text-2);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+        .input-wrap{position:relative;display:flex;align-items:center}
+        .input-icon{position:absolute;left:11px;color:var(--text-3);pointer-events:none;display:flex}
+        .input-icon svg{width:15px;height:15px}
+        .field-input{width:100%;padding:10px 11px 10px 35px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-1);font-size:14px;font-family:var(--sans);transition:border-color .2s,box-shadow .2s,background .2s;outline:none}
+        .field-input::placeholder{color:var(--text-3)}
+        .field-input:focus{border-color:var(--cyan);background:rgba(0,212,255,.04);box-shadow:0 0 0 3px var(--cyan-dim)}
+        .field-input.has-r{padding-right:38px}
+        .eye-btn{position:absolute;right:9px;background:none;border:none;cursor:pointer;color:var(--text-3);padding:4px;display:flex;border-radius:4px;transition:color .2s}
+        .eye-btn:hover{color:var(--text-1)}
+        .eye-btn svg{width:15px;height:15px}
+
+        .row-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+        .check-label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);cursor:pointer;user-select:none}
+        .check-label input{width:14px;height:14px;cursor:pointer;accent-color:var(--cyan)}
+        .link-subtle{font-size:13px;color:var(--text-2);text-decoration:none;transition:color .2s}
+        .link-subtle:hover{color:var(--cyan)}
+
+        .code-row{display:flex;gap:8px}
+        .code-row .input-wrap{flex:1}
+        .send-btn{flex-shrink:0;padding:0 13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:var(--sans);transition:border-color .2s,color .2s}
+        .send-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+        .send-btn:disabled{opacity:.5;cursor:default}
+
+        .btn-primary{width:100%;padding:11px;background:linear-gradient(135deg,var(--cyan) 0%,#009bbf 100%);border:none;border-radius:var(--r-sm);color:#000;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .15s,box-shadow .2s;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden;font-family:var(--sans)}
+        .btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 60%)}
+        .btn-primary svg{width:15px;height:15px;position:relative;z-index:1}
+        .btn-primary span{position:relative;z-index:1}
+        .btn-primary:hover:not(:disabled){opacity:.9;transform:translateY(-1px);box-shadow:0 8px 24px var(--cyan-glow)}
+        .btn-primary:active:not(:disabled){transform:translateY(0)}
+        .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .spin{animation:spin .8s linear infinite}
+
+        .divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--text-3);font-size:12px}
+        .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+        .social-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .social-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text-2);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:border-color .2s,color .2s,background .2s}
+        .social-btn svg{width:14px;height:14px}
+        .social-btn:hover{border-color:var(--border-hi);color:var(--text-1);background:rgba(255,255,255,.03)}
+
+        .card-footer{text-align:center;margin-top:22px;font-size:13px;color:var(--text-2)}
+        .card-footer a{color:var(--cyan);text-decoration:none;font-weight:500}
+        .card-footer a:hover{text-decoration:underline}
+
+        .sec-ribbon{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;font-size:11px;color:var(--text-3);font-family:var(--mono)}
+        .sec-ribbon svg{width:11px;height:11px}
+
+        @media(max-width:860px){
+            .page{grid-template-columns:1fr;padding:20px 16px}
+            .side-info{display:none}
+            .card{grid-column:1;padding:28px 22px}
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+</div>
+
+<div class="page">
+    <div class="side-info">
+        <div class="brand">
+            <div class="shield-mark"><i data-lucide="shield-check"></i></div>
+            <span class="brand-name">SSO Platform</span>
+        </div>
+        <div class="side-headline">统一身份认证，<em>安全无忧</em></div>
+        <div class="trust-badges">
+            <div class="badge"><div class="badge-dot"></div>账户锁定保护 · 防暴力破解</div>
+            <div class="badge"><div class="badge-dot"></div>多因素认证 (TOTP · 手机验证码)</div>
+            <div class="badge"><div class="badge-dot"></div>异常登录实时检测与告警</div>
+            <div class="badge"><div class="badge-dot"></div>全链路审计日志</div>
+        </div>
+    </div>
+
+    <div class="card" id="mainCard">
+        <div class="card-header">
+            <div class="card-title">欢迎回来</div>
+            <div class="card-sub">请登录您的账户以继续</div>
+        </div>
+
+        <div class="tab-row">
+            <button class="tab-btn active" id="tabEmail" type="button"><i data-lucide="mail"></i>邮箱 / 密码</button>
+            <button class="tab-btn" id="tabPhone" type="button"><i data-lucide="smartphone"></i>手机验证码</button>
+        </div>
+
+        <div class="alert alert-error" id="alertBox"><i data-lucide="alert-circle"></i><span id="alertText"></span></div>
+        <div class="alert alert-success" id="successBox"><i data-lucide="check-circle"></i><span id="successText"></span></div>
+
+        <div class="lockout-bar" id="lockoutBar">
+            <i data-lucide="lock"></i>
+            <span>账户已暂时锁定，请等待</span>
+            <span class="lockout-timer" id="lockoutTimer">--:--</span>
+        </div>
+
+        <!-- Email pane -->
+        <div id="emailPane">
+            <div class="form-field">
+                <label class="field-label" for="emailInput">邮箱 / 用户名</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i data-lucide="user"></i></span>
+                    <input class="field-input" type="text" id="emailInput" placeholder="your@email.com" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-field">
+                <label class="field-label" for="passwordInput">密码</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i data-lucide="key-round"></i></span>
+                    <input class="field-input has-r" type="password" id="passwordInput" placeholder="••••••••" autocomplete="current-password">
+                    <button class="eye-btn" id="eyeBtn" type="button"><i data-lucide="eye"></i></button>
+                </div>
+            </div>
+            <div class="row-between">
+                <label class="check-label"><input type="checkbox" id="rememberMe">记住我</label>
+                <a class="link-subtle" href="/forgot-password">忘记密码？</a>
+            </div>
+            <button class="btn-primary" id="loginBtn" type="button">
+                <i data-lucide="log-in"></i><span>登录</span>
+            </button>
+        </div>
+
+        <!-- Phone pane -->
+        <div id="phonePane" style="display:none">
+            <div class="form-field">
+                <label class="field-label" for="phoneInput">手机号码</label>
+                <div class="input-wrap">
+                    <span class="input-icon"><i data-lucide="phone"></i></span>
+                    <input class="field-input" type="tel" id="phoneInput" placeholder="1xxxxxxxxxx" autocomplete="tel">
+                </div>
+            </div>
+            <div class="form-field">
+                <label class="field-label">验证码</label>
+                <div class="code-row">
+                    <div class="input-wrap">
+                        <span class="input-icon"><i data-lucide="hash"></i></span>
+                        <input class="field-input" type="text" id="codeInput" placeholder="6 位验证码" maxlength="6" autocomplete="one-time-code">
+                    </div>
+                    <button class="send-btn" id="sendCodeBtn" type="button">发送验证码</button>
+                </div>
+            </div>
+            <button class="btn-primary" id="phoneLoginBtn" type="button" style="margin-top:4px">
+                <i data-lucide="log-in"></i><span>登录</span>
+            </button>
+        </div>
+
+        <div class="divider">其他方式</div>
+        <div class="social-row">
+            <button class="social-btn" type="button" onclick="showAlert('GitHub 登录暂未开放','warn')"><i data-lucide="github"></i>GitHub</button>
+            <button class="social-btn" type="button" onclick="showAlert('Google 登录暂未开放','warn')"><i data-lucide="chrome"></i>Google</button>
+        </div>
+
+        <div class="card-footer">还没有账号？<a href="/register">立即注册</a></div>
+        <div class="sec-ribbon"><i data-lucide="shield"></i>受 AES-256 · bcrypt · JWT 保护</div>
+    </div>
+
+    <div></div>
+</div>
+
+<script>
+lucide.createIcons();
+const urlParams = new URLSearchParams(window.location.search);
+const redirectUri = urlParams.get('redirect_uri') || '';
+
+// Tabs
+document.getElementById('tabEmail').addEventListener('click',()=>{
+    document.getElementById('tabEmail').classList.add('active');
+    document.getElementById('tabPhone').classList.remove('active');
+    document.getElementById('emailPane').style.display='';
+    document.getElementById('phonePane').style.display='none';
+    clearAlerts();
+});
+document.getElementById('tabPhone').addEventListener('click',()=>{
+    document.getElementById('tabPhone').classList.add('active');
+    document.getElementById('tabEmail').classList.remove('active');
+    document.getElementById('phonePane').style.display='';
+    document.getElementById('emailPane').style.display='none';
+    clearAlerts();
+});
+
+// Eye
+document.getElementById('eyeBtn').addEventListener('click',()=>{
+    const p=document.getElementById('passwordInput');
+    const show=p.type==='password';
+    p.type=show?'text':'password';
+    document.getElementById('eyeBtn').querySelector('i').setAttribute('data-lucide',show?'eye-off':'eye');
+    lucide.createIcons();
+});
+
+// Alerts
+function clearAlerts(){
+    document.getElementById('alertBox').classList.remove('visible');
+    document.getElementById('successBox').classList.remove('visible');
+}
+function showAlert(msg,type='error'){
+    clearAlerts();
+    if(type==='success'){
+        document.getElementById('successText').textContent=msg;
+        document.getElementById('successBox').classList.add('visible');
+    } else {
+        const box=document.getElementById('alertBox');
+        const iconName=type==='warn'?'alert-triangle':'alert-circle';
+        box.className='alert alert-'+(type==='warn'?'warn':'error')+' visible';
+        const iconEl=box.querySelector('i[data-lucide]')||box.querySelector('svg');
+        if(iconEl&&iconEl.tagName.toLowerCase()==='i'){iconEl.setAttribute('data-lucide',iconName);lucide.createIcons();}
+        document.getElementById('alertText').textContent=msg;
+        if(type==='error'){
+            const card=document.getElementById('mainCard');
+            card.classList.remove('shake');void card.offsetWidth;
+            card.classList.add('shake');
+            card.addEventListener('animationend',()=>card.classList.remove('shake'),{once:true});
+        }
+    }
+}
+function parseError(data){
+    if(Array.isArray(data.detail)){
+        const m={email:'邮箱',password:'密码',phone:'手机号',code:'验证码'};
+        return data.detail.map(e=>`${m[e.loc?e.loc[e.loc.length-1]:'']||''}：${e.msg}`).join('；');
+    }
+    return typeof data.detail==='string'?data.detail:'请求失败，请检查输入';
+}
+
+// Lockout
+let lockInterval=null;
+function startLockout(sec){
+    const bar=document.getElementById('lockoutBar');
+    const timer=document.getElementById('lockoutTimer');
+    bar.classList.add('visible');
+    clearInterval(lockInterval);
+    let r=sec;
+    const upd=()=>{
+        const m=String(Math.floor(r/60)).padStart(2,'0');
+        const s=String(r%60).padStart(2,'0');
+        timer.textContent=`${m}:${s}`;
+        if(r<=0){clearInterval(lockInterval);bar.classList.remove('visible');}
+        r--;
+    };
+    upd();lockInterval=setInterval(upd,1000);
+}
+
+// Fingerprint
+async function getFingerprint(){
+    try{
+        let fp=localStorage.getItem('_device_fp');
+        if(!fp&&window.FingerprintJS){fp=await FingerprintJS.getFingerprint();localStorage.setItem('_device_fp',fp);}
+        return fp||'';
+    }catch{return '';}
+}
+
+// Button state
+function setLoading(btn,loading,icon='log-in',text='登录'){
+    if(!btn)return;
+    btn.disabled=loading;
+    const i=btn.querySelector('i');const s=btn.querySelector('span');
+    if(loading){if(i){i.setAttribute('data-lucide','loader-2');i.classList.add('spin');}if(s)s.textContent='处理中…';}
+    else{if(i){i.setAttribute('data-lucide',icon);i.classList.remove('spin');}if(s)s.textContent=text;}
+    lucide.createIcons();
+}
+
+// Email login
+document.getElementById('loginBtn').addEventListener('click',async()=>{
+    const email=document.getElementById('emailInput').value.trim();
+    const password=document.getElementById('passwordInput').value;
+    if(!email){showAlert('请输入邮箱或用户名');return;}
+    if(!password){showAlert('请输入密码');return;}
+    const btn=document.getElementById('loginBtn');
+    setLoading(btn,true);clearAlerts();
+    const fd=new FormData();
+    fd.append('email',email);fd.append('password',password);
+    fd.append('redirect_uri',redirectUri);
+    fd.append('device_fingerprint',await getFingerprint());
+    try{
+        const res=await fetch('/api/auth/login',{method:'POST',body:fd,credentials:'include'});
+        const data=await res.json();
+        if(res.ok&&data.success){
+            if(data.requires_mfa){
+                const target=redirectUri||'/account';
+                if(data.is_anomaly){showAlert('⚠️ '+data.message+'，正在跳转…','warn');setTimeout(()=>{window.location.href=`/mfa/verify?redirect_uri=${encodeURIComponent(target)}`;},1400);}
+                else{window.location.href=`/mfa/verify?redirect_uri=${encodeURIComponent(target)}`;}
+                return;
+            }
+            showAlert('登录成功，正在跳转…','success');
+            const to=res.headers.get('X-Redirect-To')||redirectUri||'/account';
+            setTimeout(()=>{window.location.href=to;},600);
+        } else {
+            const msg=parseError(data);
+            if(res.status===429&&msg.includes('锁定')){
+                const m=msg.match(/(\d+)\s*分.*?(\d+)\s*秒/);
+                if(m)startLockout(parseInt(m[1])*60+parseInt(m[2]));
+            }
+            showAlert(msg);
+        }
+    }catch{showAlert('网络错误，请稍后重试');}
+    finally{setLoading(btn,false);}
+});
+['emailInput','passwordInput'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginBtn').click();}));
+
+// Send code
+let cntActive=false;
+document.getElementById('sendCodeBtn').addEventListener('click',async()=>{
+    if(cntActive)return;
+    const phone=document.getElementById('phoneInput').value.trim();
+    if(!phone){showAlert('请输入手机号码');return;}
+    const btn=document.getElementById('sendCodeBtn');
+    btn.disabled=true;btn.textContent='发送中…';
+    const fd=new FormData();fd.append('phone',phone);
+    try{
+        const res=await fetch('/api/auth/phone/send-code',{method:'POST',body:fd});
+        const data=await res.json();
+        if(res.ok){
+            showAlert(data.message||'验证码已发送','success');
+            let s=60;cntActive=true;
+            const t=setInterval(()=>{btn.textContent=`${s}s 后重发`;s--;if(s<0){clearInterval(t);cntActive=false;btn.disabled=false;btn.textContent='发送验证码';}},1000);
+        } else {
+            showAlert(data.detail||'发送失败');btn.disabled=false;btn.textContent='发送验证码';
+        }
+    }catch{showAlert('网络错误，无法发送');btn.disabled=false;btn.textContent='发送验证码';}
+});
+
+// Phone login
+document.getElementById('phoneLoginBtn').addEventListener('click',async()=>{
+    const phone=document.getElementById('phoneInput').value.trim();
+    const code=document.getElementById('codeInput').value.trim();
+    if(!phone){showAlert('请输入手机号码');return;}
+    if(!code){showAlert('请输入验证码');return;}
+    const btn=document.getElementById('phoneLoginBtn');
+    setLoading(btn,true);clearAlerts();
+    const fd=new FormData();fd.append('phone',phone);fd.append('code',code);fd.append('redirect_uri',redirectUri);
+    try{
+        const res=await fetch('/api/auth/login/phone',{method:'POST',body:fd,credentials:'include'});
+        const data=await res.json();
+        if(res.ok&&data.success){
+            showAlert('登录成功，正在跳转…','success');
+            const to=res.headers.get('X-Redirect-To')||redirectUri||'/account';
+            setTimeout(()=>{window.location.href=to;},600);
+        } else {showAlert(parseError(data));}
+    }catch{showAlert('网络错误，请稍后重试');}
+    finally{setLoading(btn,false);}
+});
+document.getElementById('codeInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('phoneLoginBtn').click();});
+</script>
+</body>
+</html>

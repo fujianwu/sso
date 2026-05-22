@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咨询消息管理 - 管理员后台</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}?v={{ v }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+        }
+        .message-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            transition: all var(--transition-normal);
+        }
+        .message-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .user-info h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .user-info p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        .message-meta {
+            text-align: right;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .status-processed { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+        .message-body {
+            margin-bottom: var(--spacing-lg);
+        }
+        .message-subject {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .message-text {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            background: var(--bg-tertiary);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+        }
+        .message-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+        }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+
+    <div class="container py-12">
+        <div style="max-width: 1000px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
+                <div style="position: relative;">
+                    <h1 style="font-size: 2rem; color: var(--text-primary);">
+                        咨询消息管理
+                        {% if unread_messages_count and unread_messages_count > 0 %}
+                        <span class="notification-badge" style="position: relative; top: -15px; right: -5px; display: inline-flex;">{{ unread_messages_count }}</span>
+                        {% endif %}
+                    </h1>
+                    <p style="color: var(--text-secondary); margin-top: 8px;">查看和处理用户提交的反馈与支持请求</p>
+                </div>
+                <a href="/admin" class="btn btn-outline btn-sm">返回控制台</a>
+            </div>
+
+            <div class="message-list">
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="message-card" id="msg-{{ msg.id }}">
+                        <div class="message-header">
+                            <div class="user-info">
+                                <h3>{{ msg.name }}</h3>
+                                <p>{{ msg.email }} {% if msg.phone %}| {{ msg.phone }}{% endif %}</p>
+                            </div>
+                            <div class="message-meta">
+                                <span class="status-badge {% if msg.status in ('pending', 'unread') %}status-pending{% else %}status-processed{% endif %}">
+                                    {{ '待处理' if msg.status in ('pending', 'unread') else '已处理' }}
+                                </span>
+                                <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 8px;">{{ msg.created_at }}</p>
+                            </div>
+                        </div>
+                        <div class="message-body">
+                            <div class="message-subject">
+                                <span style="padding: 2px 8px; background: rgba(59, 130, 246, 0.2); color: #3b82f6; font-size: 0.75rem; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.3);">{{ msg.type }}</span>
+                                {{ msg.subject }}
+                            </div>
+                            <div class="message-text">{{ msg.message }}</div>
+                        </div>
+                        <div class="message-footer">
+                            {% if msg.status in ('pending', 'unread') %}
+                            <button onclick="updateStatus({{ msg.id }}, 'processed')" class="btn btn-primary btn-sm">
+                                <i data-lucide="check" size="14"></i> 标记为已处理
+                            </button>
+                            {% endif %}
+                            <button onclick="deleteMessage({{ msg.id }})" class="btn btn-outline btn-sm" style="color: var(--danger-color); border-color: rgba(239, 68, 68, 0.3);">
+                                <i data-lucide="trash-2" size="14"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 80px 0; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+                        <i data-lucide="mail-open" style="margin: 0 auto var(--spacing-md); color: var(--text-tertiary);" size="48"></i>
+                        <p style="color: var(--text-secondary);">暂无咨询消息</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% include "footer.html" %}
+
+    <script src="/static/js/common.js?v={{ v }}"></script>
+    <script>
+        lucide.createIcons();
+
+        async function updateStatus(id, status) {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '标记已处理',
+                message: '确定要将此消息标记为已处理吗？',
+                type: 'info'
+            });
+            if (!confirmed) return;
+            try {
+                const response = await fetch('/api/admin/messages/' + id + '/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    ssoUtils.showSuccess('操作成功');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    ssoUtils.showError(result.detail || '操作失败');
+                }
+            } catch (e) {
+                ssoUtils.showError('请求出错');
+            }
+        }
+
+        async function deleteMessage(id) {
+            const confirmed = await ssoUtils.showConfirm({
+                title: '删除消息',
+                message: '确定要删除此消息吗？此操作不可撤销。',
+                type: 'danger'
+            });
+            if (!confirmed) return;
+            try {
+                const response = await fetch('/api/admin/messages/' + id, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    ssoUtils.showSuccess('删除成功');
+                    document.getElementById('msg-' + id).remove();
+                } else {
+                    ssoUtils.showError(result.detail || '删除失败');
+                }
+            } catch (e) {
+                ssoUtils.showError('请求出错');
+            }
+        }
+    </script>
+</body>
+</html>
