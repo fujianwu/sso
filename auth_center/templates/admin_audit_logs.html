@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>审计日志 - SSO 认证中心</title>
+    <link rel="stylesheet" href="/static/css/modern.css?v={{ v }}" />
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        /* 审计日志专用样式 */
+        .audit-management-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-button:hover {
+            color: var(--primary-color);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 13px;
+            min-width: 180px;
+        }
+
+        .filter-group input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .btn-primary {
+            padding: 8px 16px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+        }
+
+        /* 优化表格样式 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 13px;
+            background-color: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .data-table th {
+            background: rgba(0, 212, 255, 0.05);
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 212, 255, 0.03);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: rgba(16, 185, 129, 1);
+        }
+
+        .status-failure {
+            background: rgba(239, 68, 68, 0.1);
+            color: rgba(239, 68, 68, 1);
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: rgba(245, 158, 11, 1);
+        }
+
+        .status-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: rgba(59, 130, 246, 1);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .details-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .popup-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .popup-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .popup-close:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .detail-label {
+            width: 120px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .export-button {
+            margin-left: 16px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="page-container">
+        <div class="audit-management-container">
+            <h2 style="margin-bottom: 8px; color: var(--text-primary); font-size: 24px; font-weight: 600;">
+                审计日志管理
+            </h2>
+            <p style="color: var(--text-tertiary); font-size: 14px; margin-bottom: 24px;">
+                记录和审计系统中的所有敏感操作和登录活动
+            </p>
+
+            <div class="tabs-container">
+                <button class="tab-button active" onclick="switchTab('audit')">操作审计</button>
+                <button class="tab-button" onclick="switchTab('login')">登录审计</button>
+            </div>
+
+            <!-- 操作审计标签 -->
+            <div id="audit-tab" class="tab-content">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>操作员</label>
+                        <input type="text" id="audit-operator-filter" placeholder="操作员邮箱或ID">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>目标用户</label>
+                        <input type="text" id="audit-user-filter" placeholder="目标用户邮箱或ID">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>操作类型</label>
+                        <select id="audit-action-type-filter">
+                            <option value="">所有类型</option>
+                            <option value="user_delete">用户删除</option>
+                            <option value="user_update">用户更新</option>
+                            <option value="app_delete">应用删除</option>
+                            <option value="password_reset">密码重置</option>
+                            <option value="permission_change">权限变更</option>
+                            <option value="config_change">配置修改</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>目标类型</label>
+                        <select id="audit-target-type-filter">
+                            <option value="">所有目标</option>
+                            <option value="user">用户</option>
+                            <option value="app">应用</option>
+                            <option value="system">系统</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>状态</label>
+                        <select id="audit-success-filter">
+                            <option value="">所有状态</option>
+                            <option value="true">成功</option>
+                            <option value="false">失败</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>时间范围</label>
+                        <input type="datetime-local" id="audit-start-time-filter">
+                        <span style="color: var(--text-tertiary); margin: 0 8px;">到</span>
+                        <input type="datetime-local" id="audit-end-time-filter">
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="applyAuditFilters()">应用筛选</button>
+                        <button class="btn-secondary" onclick="resetAuditFilters()">重置</button>
+                        <button class="btn-secondary export-button" onclick="exportAuditLogs()">导出CSV</button>
+                    </div>
+                </div>
+
+                <div id="audit-logs-container">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 登录审计标签 -->
+            <div id="login-tab" class="tab-content" style="display: none;">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>用户邮箱</label>
+                        <input type="text" id="login-email-filter" placeholder="用户邮箱">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>登录来源</label>
+                        <select id="login-source-filter">
+                            <option value="">所有来源</option>
+                            <option value="web">Web</option>
+                            <option value="oauth">OAuth</option>
+                            <option value="api">API</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>状态</label>
+                        <select id="login-status-filter">
+                            <option value="">所有状态</option>
+                            <option value="SUCCESS">成功</option>
+                            <option value="FAILURE">失败</option>
+                            <option value="MFA_REQUIRED">需要MFA</option>
+                            <option value="ACCOUNT_LOCKED">账户锁定</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>成功/失败</label>
+                        <select id="login-success-filter">
+                            <option value="">所有</option>
+                            <option value="true">成功</option>
+                            <option value="false">失败</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>时间范围</label>
+                        <input type="datetime-local" id="login-start-time-filter">
+                        <span style="color: var(--text-tertiary); margin: 0 8px;">到</span>
+                        <input type="datetime-local" id="login-end-time-filter">
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-primary" onclick="applyLoginFilters()">应用筛选</button>
+                        <button class="btn-secondary" onclick="resetLoginFilters()">重置</button>
+                        <button class="btn-secondary export-button" onclick="exportLoginLogs()">导出CSV</button>
+                    </div>
+                </div>
+
+                <div id="login-logs-container">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="details-popup-overlay" class="popup-overlay" style="display: none;"></div>
+    <div id="details-popup" class="details-popup" style="display: none;">
+        <div class="popup-header">
+            <div class="popup-title" id="popup-title">日志详情</div>
+            <button class="popup-close" onclick="closeDetailsPopup()">×</button>
+        </div>
+        <div id="popup-content"></div>
+    </div>
+
+    {% include 'footer.html' %}
+
+    <script>
+        let currentTab = 'audit';
+        let currentPage = 1;
+        let currentFilters = {};
+
+        // 切换标签
+        function switchTab(tab) {
+            currentTab = tab;
+            currentPage = 1;
+
+            // 更新标签按钮样式
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 显示/隐藏标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(tab + '-tab').style.display = 'block';
+
+            // 加载数据
+            if (tab === 'audit') {
+                loadAuditLogs();
+            } else {
+                loadLoginLogs();
+            }
+        }
+
+        // 加载操作审计日志
+        function loadAuditLogs() {
+            const container = document.getElementById('audit-logs-container');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            const filters = getAuditFilters();
+
+            fetch(`/api/admin/audit-logs?limit=20&offset=${(currentPage - 1) * 20}` +
+                  Object.entries(filters).map(([k, v]) => v ? `&${k}=${encodeURIComponent(v)}` : '').join(''))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    renderAuditLogs(data.data, data.total);
+                } else {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>没有找到审计日志</p></div>';
+                }
+            })
+            .catch(error => {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>加载失败，请刷新重试</p></div>';
+                console.error('加载审计日志失败:', error);
+            });
+        }
+
+        // 渲染操作审计日志
+        function renderAuditLogs(logs, total) {
+            const container = document.getElementById('audit-logs-container');
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>操作员</th>
+                            <th>操作类型</th>
+                            <th>目标</th>
+                            <th>状态</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            logs.forEach(log => {
+                const statusClass = log.success ? 'status-success' : 'status-failure';
+                const statusText = log.success ? '成功' : '失败';
+
+                html += `
+                    <tr>
+                        <td>${formatDateTime(log.action_time)}</td>
+                        <td>${log.operator_id ? log.operator_id : '系统'}</td>
+                        <td><span class="status-badge status-info">${log.action_type}</span></td>
+                        <td>${log.target_type} ${log.target_id ? `#${log.target_id}` : ''}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td><button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick='showDetails(${JSON.stringify(log)})'>查看</button></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            // 添加分页
+            const totalPages = Math.ceil(total / 20);
+            html += `
+                <div class="pagination">
+                    <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>
+                    <span>第 ${currentPage} 页 / 共 ${totalPages} 页（${total} 条记录）</span>
+                    <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // 加载登录审计日志
+        function loadLoginLogs() {
+            const container = document.getElementById('login-logs-container');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            const filters = getLoginFilters();
+
+            fetch(`/api/admin/login-logs?limit=20&offset=${(currentPage - 1) * 20}` +
+                  Object.entries(filters).map(([k, v]) => v ? `&${k}=${encodeURIComponent(v)}` : '').join(''))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    renderLoginLogs(data.data, data.total);
+                } else {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>没有找到登录日志</p></div>';
+                }
+            })
+            .catch(error => {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>加载失败，请刷新重试</p></div>';
+                console.error('加载登录日志失败:', error);
+            });
+        }
+
+        // 渲染登录审计日志
+        function renderLoginLogs(logs, total) {
+            const container = document.getElementById('login-logs-container');
+
+            let html = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>用户</th>
+                            <th>来源</th>
+                            <th>IP地址</th>
+                            <th>状态</th>
+                            <th>设备</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            logs.forEach(log => {
+                const statusClass = log.status === 'SUCCESS' ? 'status-success' :
+                                   log.status === 'FAILURE' ? 'status-failure' : 'status-warning';
+                const deviceInfo = getDeviceInfo(log.user_agent);
+
+                html += `
+                    <tr>
+                        <td>${formatDateTime(log.login_time)}</td>
+                        <td>${log.email}</td>
+                        <td><span class="status-badge status-info">${log.login_source || '未知'}</span></td>
+                        <td>${log.ip_address || '未知'}</td>
+                        <td><span class="status-badge ${statusClass}">${log.status}</span></td>
+                        <td>${deviceInfo}</td>
+                        <td><button class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick='showDetails(${JSON.stringify(log)})'>查看</button></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            // 添加分页
+            const totalPages = Math.ceil(total / 20);
+            html += `
+                <div class="pagination">
+                    <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>← 上一页</button>
+                    <span>第 ${currentPage} 页 / 共 ${totalPages} 页（${total} 条记录）</span>
+                    <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>下一页 →</button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // 获取操作审计筛选条件
+        function getAuditFilters() {
+            return {
+                operator_id: document.getElementById('audit-operator-filter').value,
+                user_id: document.getElementById('audit-user-filter').value,
+                action_type: document.getElementById('audit-action-type-filter').value,
+                target_type: document.getElementById('audit-target-type-filter').value,
+                success: document.getElementById('audit-success-filter').value,
+                start_time: document.getElementById('audit-start-time-filter').value,
+                end_time: document.getElementById('audit-end-time-filter').value
+            };
+        }
+
+        // 获取登录审计筛选条件
+        function getLoginFilters() {
+            return {
+                email: document.getElementById('login-email-filter').value,
+                login_source: document.getElementById('login-source-filter').value,
+                status: document.getElementById('login-status-filter').value,
+                success: document.getElementById('login-success-filter').value,
+                start_time: document.getElementById('login-start-time-filter').value,
+                end_time: document.getElementById('login-end-time-filter').value
+            };
+        }
+
+        // 应用操作审计筛选
+        function applyAuditFilters() {
+            currentPage = 1;
+            loadAuditLogs();
+        }
+
+        // 应用登录审计筛选
+        function applyLoginFilters() {
+            currentPage = 1;
+            loadLoginLogs();
+        }
+
+        // 重置操作审计筛选
+        function resetAuditFilters() {
+            document.getElementById('audit-operator-filter').value = '';
+            document.getElementById('audit-user-filter').value = '';
+            document.getElementById('audit-action-type-filter').value = '';
+            document.getElementById('audit-target-type-filter').value = '';
+            document.getElementById('audit-success-filter').value = '';
+            document.getElementById('audit-start-time-filter').value = '';
+            document.getElementById('audit-end-time-filter').value = '';
+            currentPage = 1;
+            loadAuditLogs();
+        }
+
+        // 重置登录审计筛选
+        function resetLoginFilters() {
+            document.getElementById('login-email-filter').value = '';
+            document.getElementById('login-source-filter').value = '';
+            document.getElementById('login-status-filter').value = '';
+            document.getElementById('login-success-filter').value = '';
+            document.getElementById('login-start-time-filter').value = '';
+            document.getElementById('login-end-time-filter').value = '';
+            currentPage = 1;
+            loadLoginLogs();
+        }
+
+        // 改变页码
+        function changePage(delta) {
+            const totalPages = Math.ceil(document.querySelector('.pagination span').textContent.match(/共 (\d+) 页/)?.[1] || 1, 10);
+            const newPage = currentPage + delta;
+
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                if (currentTab === 'audit') {
+                    loadAuditLogs();
+                } else {
+                    loadLoginLogs();
+                }
+            }
+        }
+
+        // 显示详情弹窗
+        function showDetails(log) {
+            const popup = document.getElementById('details-popup');
+            const overlay = document.getElementById('details-popup-overlay');
+            const content = document.getElementById('popup-content');
+            const title = document.getElementById('popup-title');
+
+            if (currentTab === 'audit') {
+                title.textContent = '操作审计详情';
+                content.innerHTML = `
+                    <div class="detail-row">
+                        <div class="detail-label">操作时间:</div>
+                        <div class="detail-value">${formatDateTime(log.action_time)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">操作员ID:</div>
+                        <div class="detail-value">${log.operator_id || '系统'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">操作类型:</div>
+                        <div class="detail-value">${log.action_type}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">目标类型:</div>
+                        <div class="detail-value">${log.target_type}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">目标ID:</div>
+                        <div class="detail-value">${log.target_id || '无'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">用户ID:</div>
+                        <div class="detail-value">${log.user_id || '无'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">操作详情:</div>
+                        <div class="detail-value">${log.action_details || '无'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">IP地址:</div>
+                        <div class="detail-value">${log.ip_address || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">用户代理:</div>
+                        <div class="detail-value">${log.user_agent || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">状态:</div>
+                        <div class="detail-value"><span class="status-badge ${log.success ? 'status-success' : 'status-failure'}">${log.success ? '成功' : '失败'}</span></div>
+                    </div>
+                    ${log.failure_reason ? `
+                    <div class="detail-row">
+                        <div class="detail-label">失败原因:</div>
+                        <div class="detail-value">${log.failure_reason}</div>
+                    </div>
+                    ` : ''}
+                `;
+            } else {
+                title.textContent = '登录审计详情';
+                content.innerHTML = `
+                    <div class="detail-row">
+                        <div class="detail-label">登录时间:</div>
+                        <div class="detail-value">${formatDateTime(log.login_time)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">用户ID:</div>
+                        <div class="detail-value">${log.user_id || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">用户邮箱:</div>
+                        <div class="detail-value">${log.email}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">登录来源:</div>
+                        <div class="detail-value">${log.login_source || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">IP地址:</div>
+                        <div class="detail-value">${log.ip_address || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">用户代理:</div>
+                        <div class="detail-value">${log.user_agent || '未知'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">设备信息:</div>
+                        <div class="detail-value">${getDeviceInfo(log.user_agent)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">状态:</div>
+                        <div class="detail-value">${log.status}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">成功/失败:</div>
+                        <div class="detail-value"><span class="status-badge ${log.success ? 'status-success' : 'status-failure'}">${log.success ? '成功' : '失败'}</span></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">消息:</div>
+                        <div class="detail-value">${log.message || '无'}</div>
+                    </div>
+                    ${log.failure_reason ? `
+                    <div class="detail-row">
+                        <div class="detail-label">失败原因:</div>
+                        <div class="detail-value">${log.failure_reason}</div>
+                    </div>
+                    ` : ''}
+                `;
+            }
+
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        // 关闭详情弹窗
+        function closeDetailsPopup() {
+            document.getElementById('details-popup').style.display = 'none';
+            document.getElementById('details-popup-overlay').style.display = 'none';
+        }
+
+        // 格式化日期时间
+        function formatDateTime(datetimeStr) {
+            if (!datetimeStr) return '未知';
+            try {
+                const date = new Date(datetimeStr);
+                return date.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            } catch {
+                return datetimeStr;
+            }
+        }
+
+        // 获取设备信息
+        function getDeviceInfo(userAgent) {
+            if (!userAgent) return '未知设备';
+
+            const ua = userAgent.toLowerCase();
+            let device = '未知设备';
+            let browser = '未知浏览器';
+
+            // 检测设备类型
+            if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+                device = '移动设备';
+            } else if (ua.includes('tablet') || ua.includes('ipad')) {
+                device = '平板电脑';
+            } else {
+                device = '桌面电脑';
+            }
+
+            // 检测浏览器
+            if (ua.includes('chrome')) browser = 'Chrome';
+            else if (ua.includes('firefox')) browser = 'Firefox';
+            else if (ua.includes('safari')) browser = 'Safari';
+            else if (ua.includes('edge')) browser = 'Edge';
+            else if (ua.includes('opera')) browser = 'Opera';
+
+            // 检测操作系统
+            let os = '未知系统';
+            if (ua.includes('windows')) os = 'Windows';
+            else if (ua.includes('macintosh') || ua.includes('mac os')) os = 'macOS';
+            else if (ua.includes('linux')) os = 'Linux';
+            else if (ua.includes('android')) os = 'Android';
+            else if (ua.includes('iphone') || ua.includes('ipad')) os = 'iOS';
+
+            return `${device} | ${os} | ${browser}`;
+        }
+
+        // 导出CSV
+        function exportAuditLogs() {
+            const filters = getAuditFilters();
+            fetch(`/api/admin/audit-logs?limit=1000` +
+                  Object.entries(filters).map(([k, v]) => v ? `&${k}=${encodeURIComponent(v)}` : '').join(''))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    exportToCSV(data.data, 'audit_logs_' + new Date().toISOString().slice(0, 10));
+                }
+            });
+        }
+
+        function exportLoginLogs() {
+            const filters = getLoginFilters();
+            fetch(`/api/admin/login-logs?limit=1000` +
+                  Object.entries(filters).map(([k, v]) => v ? `&${k}=${encodeURIComponent(v)}` : '').join(''))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.length > 0) {
+                    exportToCSV(data.data, 'login_logs_' + new Date().toISOString().slice(0, 10));
+                }
+            });
+        }
+
+        function exportToCSV(data, filename) {
+            let csv = '';
+
+            // 添加头部
+            const headers = Object.keys(data[0]);
+            csv += headers.join(',') + '\n';
+
+            // 添加数据
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    // 转义双引号并用双引号包裹包含逗号的值
+                    const escaped = typeof value === 'string' ? value.replace(/\"/g, '""') : value;
+                    return escaped && escaped.toString().includes(',') ? `"${escaped}"` : escaped;
+                });
+                csv += values.join(',') + '\n';
+            });
+
+            // 下载文件
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 页面加载完成后加载数据
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAuditLogs();
+        });
+
+        // 关闭弹窗时点击外部
+        document.getElementById('details-popup-overlay').addEventListener('click', closeDetailsPopup);
+    </script>
+    <script>
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>

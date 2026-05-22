@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联系我们 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .contact-hero {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            padding: 80px var(--spacing-lg);
+            text-align: center;
+        }
+
+        .contact-hero h1 {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .contact-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-2xl) var(--spacing-lg);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-2xl);
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .contact-info {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-2xl);
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: start;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .contact-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .contact-icon i {
+            color: white;
+            width: 24px;
+            height: 24px;
+        }
+
+        .contact-details h3 {
+            font-size: 1.125rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .contact-details p {
+            color: var(--text-secondary);
+        }
+
+        .contact-form {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-2xl);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: var(--spacing-md);
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            transition: border-color var(--transition-fast);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .social-links {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+        }
+
+        .social-link {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
+
+        .social-link:hover {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .map-placeholder {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            margin-top: var(--spacing-2xl);
+        }
+
+        @media (max-width: 968px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="contact-hero">
+        <h1>联系我们</h1>
+        <p style="font-size: 1.25rem; color: var(--text-secondary);">
+            我们随时准备为您提供帮助
+        </p>
+    </div>
+
+    <div class="contact-container">
+        <div class="contact-grid">
+            <!-- 联系信息 -->
+            <div class="contact-info">
+                <h2 style="font-size: 1.75rem; margin-bottom: var(--spacing-xl);">联系方式</h2>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i data-lucide="mail"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>联系方式</h3>
+                        <p>请通过右侧表单提交反馈，收到后会尽快处理。</p>
+                        <p style="color: var(--text-tertiary); font-size: 0.85rem; margin-top: 0.5rem;">这是个人项目，无法保证即时响应，感谢理解。</p>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <i data-lucide="file-text"></i>
+                    </div>
+                    <div class="contact-details">
+                        <h3>相关页面</h3>
+                        <p><a href="/docs" style="color: var(--primary-color);">接入文档</a> · <a href="/support" style="color: var(--primary-color);">常见问题</a> · <a href="/about" style="color: var(--primary-color);">关于项目</a></p>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- 联系表单 -->
+            <div class="contact-form">
+                <h2 style="font-size: 1.75rem; margin-bottom: var(--spacing-xl);">发送消息</h2>
+                <form id="contact-form" method="POST" action="/api/contact">
+                    <div class="form-group">
+                        <label for="name">姓名 *</label>
+                        <input type="text" id="name" name="name" required placeholder="请输入您的姓名">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">邮箱 *</label>
+                        <input type="email" id="email" name="email" required placeholder="your@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">电话</label>
+                        <input type="tel" id="phone" name="phone" placeholder="请输入您的电话号码（可选）">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">咨询类型 *</label>
+                        <select id="type" name="type" required>
+                            <option value="">请选择</option>
+                            <option value="technical">技术支持</option>
+                            <option value="sales">商务合作</option>
+                            <option value="feedback">产品反馈</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">主题 *</label>
+                        <input type="text" id="subject" name="subject" required placeholder="简要描述您的问题">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">详细内容 *</label>
+                        <textarea id="message" name="message" required placeholder="请详细描述您的问题或需求..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                        <i data-lucide="send"></i>
+                        发送消息
+                    </button>
+                </form>
+            </div>
+        </div>
+
+
+
+        <!-- 快速链接 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-2xl); margin-top: var(--spacing-2xl); text-align: center);">
+            <h3 style="font-size: 1.5rem; margin-bottom: var(--spacing-lg);">其他帮助</h3>
+            <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                <a href="/docs" class="btn btn-secondary">
+                    <i data-lucide="book-open"></i>
+                    开发文档
+                </a>
+                <a href="/api" class="btn btn-secondary">
+                    <i data-lucide="code"></i>
+                    API 参考
+                </a>
+                <a href="/support" class="btn btn-secondary">
+                    <i data-lucide="life-buoy"></i>
+                    技术支持
+                </a>
+                <a href="/about" class="btn btn-secondary">
+                    <i data-lucide="info"></i>
+                    关于我们
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% include "footer.html" %}
+
+    <script src="{{ url_for('static', path='/js/common.js') }}"></script>
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('contact-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                type: document.getElementById('type').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+
+            // 验证
+            if (!formData.name || !formData.email || !formData.type || !formData.subject || !formData.message) {
+                if (typeof ssoUtils !== 'undefined') {
+                    ssoUtils.showError('请填写所有必填项');
+                } else {
+                    alert('请填写所有必填项');
+                }
+                return;
+            }
+
+            // 提交到后端API
+            try {
+                const body = new URLSearchParams(formData);
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                });
+                const result = await response.json();
+                if (typeof ssoUtils !== 'undefined') {
+                    ssoUtils.showSuccess(result.message || '感谢您的留言！我们会尽快与您联系。');
+                } else {
+                    alert(result.message || '感谢您的留言！我们会尽快与您联系。');
+                }
+                this.reset();
+            } catch (err) {
+                if (typeof ssoUtils !== 'undefined') {
+                    ssoUtils.showSuccess('感谢您的留言！我们会尽快与您联系。');
+                } else {
+                    alert('感谢您的留言！我们会尽快与您联系。');
+                }
+                this.reset();
+            }
+        });
+        }); // DOMContentLoaded
+    </script>
+</body>
+</html>

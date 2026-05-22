@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消息管理 — 管理员后台</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}?v=3">
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .admin-wrap { max-width:1380px;margin:0 auto;padding:2rem 1.5rem 4rem;position:relative;z-index:1; }
+        .top-bar { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem; }
+        .page-eyebrow { font-family:var(--font-display);font-size:.6rem;letter-spacing:4px;text-transform:uppercase;color:var(--primary-color);margin-bottom:.4rem;opacity:.8; }
+        .page-title { font-family:var(--font-display);font-size:1.5rem;font-weight:800;letter-spacing:2px;color:var(--text-primary); }
+
+        /* Tab */
+        .tab-bar { display:flex;gap:4px;background:rgba(0,0,0,.3);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:4px;width:fit-content; }
+        .tab-btn { padding:.45rem 1.1rem;font-size:.78rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;background:transparent;color:var(--text-muted);display:flex;align-items:center;gap:6px; }
+        .tab-btn i { width:13px;height:13px; }
+        .tab-btn.active { background:rgba(0,229,255,.12);color:var(--primary-color); }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block;animation:float-up .2s ease; }
+
+        /* ── 广播管理 ── */
+        .broadcast-layout { display:grid;grid-template-columns:1fr 360px;gap:1.25rem;align-items:start; }
+
+        .panel-card { background:rgba(8,15,31,.95);border:1px solid var(--border-color);border-radius:var(--radius-lg);overflow:hidden; }
+        .panel-head { padding:1rem 1.25rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px; }
+        .panel-head::before { content:'';width:3px;height:18px;background:linear-gradient(180deg,var(--primary-color),var(--accent-color));border-radius:2px; }
+        .panel-head i { width:15px;height:15px;color:var(--primary-color); }
+        .panel-head-title { font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-primary);flex:1; }
+
+        .bc-list { display:flex;flex-direction:column; }
+        .bc-item { padding:1rem 1.25rem;border-bottom:1px solid rgba(0,229,255,.05);display:flex;align-items:flex-start;gap:1rem;transition:background .15s; }
+        .bc-item:last-child { border-bottom:none; }
+        .bc-item:hover { background:rgba(0,229,255,.03); }
+        .bc-body { flex:1;min-width:0; }
+        .bc-title { font-size:.9rem;font-weight:700;color:var(--text-primary);margin-bottom:.25rem; }
+        .bc-preview { font-size:.8rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; }
+        .bc-meta { font-size:.72rem;color:var(--text-muted);margin-top:.35rem;display:flex;gap:.75rem; }
+        .bc-actions { flex-shrink:0;display:flex;gap:.35rem; }
+
+        /* 发布广播表单 */
+        .compose-form { padding:1.25rem;display:flex;flex-direction:column;gap:.875rem; }
+        .compose-label { font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:.35rem;display:block; }
+        .compose-input { width:100%;padding:.65rem .875rem;background:rgba(0,0,0,.35);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);font-size:.875rem;outline:none;font-family:var(--font-family);transition:border-color .2s; }
+        .compose-input:focus { border-color:var(--primary-color); }
+        .compose-textarea { min-height:120px;resize:vertical;line-height:1.6; }
+
+        /* ── 富文本编辑器 ── */
+        .rte-toolbar {
+            display:flex;align-items:center;flex-wrap:wrap;gap:2px;
+            background:rgba(0,0,0,.45);border:1px solid var(--border-color);
+            border-bottom:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+            padding:5px 6px;
+        }
+        .rte-btn {
+            background:rgba(255,255,255,.05);border:1px solid transparent;
+            color:var(--text-secondary);border-radius:4px;padding:3px 7px;
+            font-size:.8rem;cursor:pointer;line-height:1.4;transition:all .15s;
+            min-width:26px;text-align:center;
+        }
+        .rte-btn:hover { background:rgba(0,229,255,.12);color:var(--primary-color);border-color:rgba(0,229,255,.25); }
+        .rte-select {
+            background:rgba(0,0,0,.45);border:1px solid var(--border-color);
+            color:var(--text-secondary);border-radius:4px;padding:3px 5px;
+            font-size:.75rem;cursor:pointer;outline:none;max-width:90px;
+        }
+        .rte-select:focus { border-color:var(--primary-color); }
+        .rte-sep { width:1px;height:18px;background:var(--border-color);margin:0 3px;flex-shrink:0; }
+        .rte-color-btn {
+            display:inline-flex;align-items:center;justify-content:center;
+            width:26px;height:26px;background:rgba(255,255,255,.05);
+            border:1px solid transparent;border-radius:4px;cursor:pointer;
+            position:relative;overflow:hidden;transition:all .15s;
+        }
+        .rte-color-btn:hover { background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.25); }
+        .rte-color-btn input[type=color] {
+            position:absolute;inset:0;width:100%;height:100%;
+            opacity:0;cursor:pointer;
+        }
+        .rte-editor {
+            min-height:180px;max-height:340px;overflow-y:auto;
+            background:rgba(0,0,0,.35);border:1px solid var(--border-color);
+            border-radius:0 0 var(--radius-sm) var(--radius-sm);
+            color:var(--text-primary);font-size:.875rem;line-height:1.65;
+            padding:.65rem .875rem;outline:none;word-break:break-word;
+            transition:border-color .2s;
+        }
+        .rte-editor:focus { border-color:var(--primary-color); }
+        .rte-editor:empty:before {
+            content:attr(data-placeholder);color:var(--text-muted);pointer-events:none;
+        }
+        .rte-editor img { max-width:100%;border-radius:4px;margin:4px 0; }
+        .rte-editor a { color:var(--primary-color); }
+        .rte-editor ul,.rte-editor ol { padding-left:1.4rem; }
+
+        /* ── 对话管理 ── */
+        .conv-layout { display:grid;grid-template-columns:320px 1fr;gap:1rem;height:660px; }
+        .conv-list-panel { background:rgba(8,15,31,.95);border:1px solid var(--border-color);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column; }
+        .conv-list-scroll { flex:1;overflow-y:auto; }
+        .conv-list-scroll::-webkit-scrollbar { width:3px; }
+        .conv-list-scroll::-webkit-scrollbar-thumb { background:var(--border-color);border-radius:2px; }
+
+        .conv-item { padding:.875rem 1rem;border-bottom:1px solid rgba(0,229,255,.05);cursor:pointer;transition:all .15s; }
+        .conv-item:hover { background:rgba(0,229,255,.04); }
+        .conv-item.active { background:rgba(0,229,255,.08);border-left:3px solid var(--primary-color);padding-left:calc(1rem - 3px); }
+        .conv-item-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem; }
+        .conv-user { font-size:.85rem;font-weight:700;color:var(--text-primary); }
+        .conv-time { font-size:.68rem;color:var(--text-muted); }
+        .conv-subject { font-size:.78rem;color:var(--text-secondary);margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .conv-preview { font-size:.75rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .conv-badges { display:flex;align-items:center;gap:.4rem;margin-top:.3rem; }
+        .unread-badge { font-size:.65rem;font-weight:800;background:var(--primary-color);color:#000;border-radius:var(--radius-full);padding:0 5px;min-width:16px;text-align:center; }
+        .closed-tag { font-size:.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);background:rgba(255,255,255,.05);border:1px solid var(--border-color);padding:1px 5px;border-radius:3px; }
+
+        /* 聊天区 */
+        .chat-panel { background:rgba(8,15,31,.95);border:1px solid var(--border-color);border-radius:var(--radius-lg);display:flex;flex-direction:column;overflow:hidden; }
+        .chat-empty { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:.75rem; }
+        .chat-empty i { width:40px;height:40px;opacity:.3; }
+        .chat-head { padding:.875rem 1.25rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:.75rem;flex-shrink:0; }
+        .chat-head-avatar { width:34px;height:34px;border-radius:50%;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.25);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:var(--primary-color); }
+        .chat-head-info { flex:1; }
+        .chat-head-name { font-size:.9rem;font-weight:700;color:var(--text-primary); }
+        .chat-head-sub { font-size:.72rem;color:var(--text-muted); }
+        .chat-head-actions { display:flex;gap:.4rem; }
+
+        .chat-messages { flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.75rem; }
+        .chat-messages::-webkit-scrollbar { width:3px; }
+        .chat-messages::-webkit-scrollbar-thumb { background:var(--border-color);border-radius:2px; }
+
+        /* ── 聊天气泡 ── */
+        .msg-bubble-wrap { display:flex; align-items:flex-end; gap:8px; margin-bottom:2px; }
+        .msg-bubble-wrap.admin-msg { flex-direction:row-reverse; }
+        .bubble-avatar {
+            width:30px; height:30px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; font-size:.72rem; font-weight:800;
+            box-shadow:0 2px 6px rgba(0,0,0,.4);
+        }
+        .bubble-avatar.admin {
+            background:linear-gradient(135deg,var(--primary-color),var(--accent-color));
+            color:#000;
+        }
+        .bubble-avatar.user {
+            background:rgba(255,255,255,.1);
+            border:1px solid rgba(255,255,255,.15);
+            color:var(--text-secondary);
+        }
+        .bubble-col { display:flex; flex-direction:column; max-width:68%; }
+        .admin-msg .bubble-col { align-items:flex-end; }
+        .bubble {
+            padding:.55rem .875rem;
+            font-size:.875rem; line-height:1.65;
+            word-break:break-word;
+        }
+        /* 用户气泡：左对齐，深色 */
+        .bubble.user {
+            background:#1a2640;
+            color:#ddeeff;
+            border-radius:4px 16px 16px 16px;
+            box-shadow:0 1px 4px rgba(0,0,0,.35);
+        }
+        /* 管理员（自己）气泡：右对齐，青色 */
+        .bubble.admin {
+            background:linear-gradient(135deg,#00b4cc,#0091a8);
+            color:#fff;
+            border-radius:16px 4px 16px 16px;
+            box-shadow:0 2px 8px rgba(0,180,204,.25);
+        }
+        .bubble-meta { display:flex; align-items:center; gap:6px; margin-top:3px; padding:0 2px; }
+        .admin-msg .bubble-meta { flex-direction:row-reverse; }
+        .bubble-time { font-size:.62rem; color:var(--text-muted); white-space:nowrap; }
+        .retract-btn {
+            display:none; background:none; border:none;
+            color:var(--text-muted); cursor:pointer; font-size:.65rem;
+            padding:1px 5px; border-radius:3px; transition:all .15s; white-space:nowrap;
+        }
+        .retract-btn:hover { color:var(--danger-color); background:rgba(255,23,68,.1); }
+        .msg-bubble-wrap:hover .retract-btn { display:inline-flex; align-items:center; gap:3px; }
+        .retract-detail { margin-top:5px; }
+        .retract-detail summary {
+            font-size:.72rem; color:var(--primary-color); cursor:pointer;
+            user-select:none; opacity:.8; list-style:none;
+            display:inline-flex; align-items:center; gap:4px;
+        }
+        .retract-detail summary::-webkit-details-marker { display:none; }
+        .retract-detail summary::before { content:'▶'; font-size:.6rem; transition:transform .15s; }
+        .retract-detail[open] summary::before { transform:rotate(90deg); }
+        .retract-original {
+            margin-top:5px; padding:.5rem .75rem;
+            background:rgba(0,229,255,.06); border:1px solid rgba(0,229,255,.15);
+            border-radius:var(--radius-sm); font-size:.82rem;
+            color:var(--text-secondary); line-height:1.6;
+        }
+
+        .chat-input-area { border-top:1px solid var(--border-color);padding:.875rem;flex-shrink:0; }
+        .chat-input-row { display:flex;gap:.5rem;align-items:flex-end; }
+        .chat-textarea { flex:1;padding:.625rem .875rem;background:rgba(0,0,0,.35);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-family);font-size:.875rem;resize:none;min-height:40px;max-height:120px;outline:none;transition:border-color .2s;line-height:1.5; }
+        .chat-textarea:focus { border-color:var(--primary-color); }
+        .chat-send-btn { width:40px;height:40px;border-radius:var(--radius-md);background:var(--primary-color);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0; }
+        .chat-send-btn:hover { box-shadow:0 0 16px rgba(0,229,255,.4); }
+
+        /* 微信风格发送状态 */
+        .msg-status { display:flex;align-items:center;flex-shrink:0;margin-bottom:2px; }
+        .msg-status-spinner {
+            width:16px;height:16px;border:2px solid rgba(255,255,255,.25);
+            border-top-color:var(--primary-color);border-radius:50%;
+            animation:spin .7s linear infinite;
+        }
+        .msg-status-fail {
+            width:18px;height:18px;border-radius:50%;background:var(--danger-color,#ff1744);
+            color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;
+            cursor:pointer;flex-shrink:0;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .chat-send-btn:disabled { opacity:.4;cursor:not-allowed; }
+        .chat-send-btn i { width:16px;height:16px;color:#000; }
+        .chat-closed-notice { text-align:center;padding:.75rem;font-size:.78rem;color:var(--text-muted);background:rgba(255,215,64,.05);border-top:1px solid rgba(255,215,64,.1);flex-shrink:0; }
+
+        @media(max-width:900px){ .broadcast-layout,.conv-layout{grid-template-columns:1fr;} .conv-list-panel{max-height:250px;} .chat-panel{min-height:400px;} }
+        .img-upload-btn { width:36px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;flex-shrink:0;border-radius:var(--radius-sm);transition:color .2s; }
+        .img-upload-btn:hover { color:var(--primary-color); }
+        .img-upload-btn i { width:18px;height:18px; }
+        .img-preview-item { position:relative;display:inline-block;margin-right:.5rem; }
+        .img-preview-item img { width:60px;height:60px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border-color); }
+        .img-preview-item .rm-btn { position:absolute;top:-6px;right:-6px;background:var(--danger-color);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+        .chat-img { max-width:200px;max-height:180px;border-radius:var(--radius-md);cursor:pointer;display:block;margin-top:4px;border:1px solid rgba(0,229,255,.2); }
+        .retract-msg { font-style:italic;color:var(--text-muted);font-size:.8rem; }
+
+        /* 主动发起对话弹窗 */
+        .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+        .modal-overlay.open { display:flex; }
+        .modal-box { background:rgba(10,18,36,.98);border:1px solid var(--border-color);border-radius:var(--radius-xl);width:480px;max-width:92vw;animation:float-up .25s ease;overflow:hidden; }
+        .modal-box::before { content:'';display:block;height:2px;background:linear-gradient(90deg,var(--primary-color),var(--accent-color)); }
+        .modal-head { padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between; }
+        .modal-title { font-family:var(--font-display);font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-primary); }
+        .modal-close { background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px; }
+        .modal-body { padding:1.5rem;display:flex;flex-direction:column;gap:.875rem; }
+        .modal-label { font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:.3rem;display:block; }
+        .modal-input { width:100%;padding:.6rem .875rem;background:rgba(0,0,0,.35);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);font-size:.875rem;outline:none;font-family:var(--font-family); }
+        .modal-input:focus { border-color:var(--primary-color); }
+        .modal-textarea { min-height:90px;resize:vertical;line-height:1.6; }
+        .modal-footer { padding:1rem 1.5rem;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:.5rem; }
+        .user-option { padding:.55rem .875rem;cursor:pointer;font-size:.85rem; }
+        .user-option:hover { background:rgba(0,229,255,.07); }
+        .user-option-name { color:var(--text-primary);font-weight:600; }
+        .user-option-email { font-size:.75rem;color:var(--text-muted); }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+    <div class="admin-wrap">
+        <div class="top-bar">
+            <div>
+                <div class="page-eyebrow">Admin / Messages</div>
+                <div class="page-title">消息管理</div>
+            </div>
+            <a href="/admin" class="btn btn-ghost btn-sm"><i data-lucide="arrow-left"></i><span>返回后台</span></a>
+        </div>
+
+        <div class="tab-bar" style="margin-bottom:1.5rem;">
+            <button class="tab-btn active" id="tabBC" onclick="switchTab('bc')">
+                <i data-lucide="megaphone"></i>广播公告
+            </button>
+            <button class="tab-btn" id="tabCV" onclick="switchTab('cv')">
+                <i data-lucide="message-circle"></i>用户对话
+                <span id="adminUnreadBadge" style="display:none;background:var(--primary-color);color:#000;border-radius:50%;font-size:.65rem;font-weight:800;padding:0 5px;min-width:16px;text-align:center;"></span>
+            </button>
+        </div>
+
+        <!-- 广播 Tab -->
+        <div class="tab-panel active" id="panelBc">
+            <div class="broadcast-layout">
+                <!-- 已发广播列表 -->
+                <div class="panel-card">
+                    <div class="panel-head"><i data-lucide="list"></i><span class="panel-head-title">已发布公告</span></div>
+                    <div class="bc-list" id="bcList">
+                        <div style="padding:2rem;text-align:center;color:var(--text-muted);">加载中…</div>
+                    </div>
+                </div>
+                <!-- 发布表单 -->
+                <div class="panel-card" style="position:sticky;top:74px;">
+                    <div class="panel-head"><i data-lucide="send"></i><span class="panel-head-title">发布新公告</span></div>
+                    <div class="compose-form">
+                        <div>
+                            <label class="compose-label">标题</label>
+                            <input class="compose-input" id="bcTitle" type="text" placeholder="公告标题…" maxlength="100">
+                        </div>
+                        <div>
+                            <label class="compose-label">内容</label>
+                            <!-- 富文本工具栏 -->
+                            <div class="rte-toolbar" id="rteToolbar">
+                                <!-- 字体 -->
+                                <select class="rte-select" onchange="rteCommand('fontName',this.value);this.value=''" title="字体">
+                                    <option value="">字体</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Inter">Inter</option>
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="'Courier New'">Courier New</option>
+                                    <option value="'Times New Roman'">Times New Roman</option>
+                                    <option value="'PingFang SC','Microsoft YaHei',sans-serif">苹方/微软雅黑</option>
+                                </select>
+                                <!-- 字号 -->
+                                <select class="rte-select" onchange="rteSize(this.value);this.value=''" title="字号">
+                                    <option value="">字号</option>
+                                    <option value="12px">12</option>
+                                    <option value="14px">14</option>
+                                    <option value="16px">16</option>
+                                    <option value="18px">18</option>
+                                    <option value="20px">20</option>
+                                    <option value="24px">24</option>
+                                    <option value="28px">28</option>
+                                    <option value="32px">32</option>
+                                    <option value="40px">40</option>
+                                    <option value="48px">48</option>
+                                </select>
+                                <div class="rte-sep"></div>
+                                <button class="rte-btn" onclick="rteCommand('bold')" title="加粗 (Ctrl+B)"><b>B</b></button>
+                                <button class="rte-btn" onclick="rteCommand('italic')" title="斜体 (Ctrl+I)"><i>I</i></button>
+                                <button class="rte-btn" onclick="rteCommand('underline')" title="下划线 (Ctrl+U)"><u>U</u></button>
+                                <button class="rte-btn" onclick="rteCommand('strikeThrough')" title="删除线"><s>S</s></button>
+                                <div class="rte-sep"></div>
+                                <!-- 文字颜色 -->
+                                <label class="rte-color-btn" title="文字颜色">
+                                    <span style="font-size:.75rem;font-weight:700;border-bottom:3px solid var(--rte-fg,#00e5ff)">A</span>
+                                    <input type="color" value="#00e5ff" oninput="document.documentElement.style.setProperty('--rte-fg',this.value)" onchange="rteCommand('foreColor',this.value)">
+                                </label>
+                                <!-- 背景色 -->
+                                <label class="rte-color-btn" title="背景色/高亮">
+                                    <span style="font-size:.75rem;font-weight:700;background:var(--rte-bg,#ffff00);color:#000;padding:0 2px">H</span>
+                                    <input type="color" value="#ffff00" oninput="document.documentElement.style.setProperty('--rte-bg',this.value)" onchange="rteCommand('hiliteColor',this.value)">
+                                </label>
+                                <div class="rte-sep"></div>
+                                <button class="rte-btn" onclick="rteCommand('justifyLeft')" title="左对齐">≡</button>
+                                <button class="rte-btn" onclick="rteCommand('justifyCenter')" title="居中">☰</button>
+                                <button class="rte-btn" onclick="rteCommand('justifyRight')" title="右对齐">≡</button>
+                                <div class="rte-sep"></div>
+                                <button class="rte-btn" onclick="rteCommand('insertUnorderedList')" title="无序列表">•≡</button>
+                                <button class="rte-btn" onclick="rteCommand('insertOrderedList')" title="有序列表">1≡</button>
+                                <div class="rte-sep"></div>
+                                <button class="rte-btn" onclick="rteInsertLink()" title="插入链接">🔗</button>
+                                <button class="rte-btn" onclick="rteInsertImage()" title="插入图片（URL）">🔗图</button>
+                                <label class="rte-btn" title="上传本地图片" style="cursor:pointer;display:inline-flex;align-items:center;">
+                                    🖼上传
+                                    <input type="file" accept="image/*" style="display:none;" onchange="rteUploadLocalImage(this)">
+                                </label>
+                                <div class="rte-sep"></div>
+                                <button class="rte-btn" onclick="rteCommand('removeFormat')" title="清除格式" style="font-size:.7rem">✕fmt</button>
+                            </div>
+                            <!-- 编辑区 -->
+                            <div class="rte-editor" id="bcBody" contenteditable="true" spellcheck="false" data-placeholder="公告内容，支持图片、样式…"></div>
+                        </div>
+                        <button class="btn btn-primary" onclick="publishBroadcast()" id="bcSendBtn" style="justify-content:center;">
+                            <i data-lucide="megaphone"></i><span>发布广播</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 对话 Tab -->
+        <div class="tab-panel" id="panelCv">
+            <div class="conv-layout">
+                <!-- 对话列表 -->
+                <div class="conv-list-panel">
+                    <div class="panel-head"><i data-lucide="message-circle"></i><span class="panel-head-title">所有对话</span><button class="btn btn-primary btn-sm" onclick="openStartModal()" style="margin-left:auto;"><i data-lucide="plus"></i><span>发起对话</span></button></div>
+                    <div class="conv-list-scroll" id="convList">
+                        <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.85rem;">加载中…</div>
+                    </div>
+                </div>
+                <!-- 聊天区 -->
+                <div class="chat-panel" id="chatPanel">
+                    <div class="chat-empty" id="chatEmpty">
+                        <i data-lucide="message-square-dashed"></i>
+                        <p style="font-size:.875rem;">选择一个对话</p>
+                    </div>
+                    <div id="chatContent" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+                        <div class="chat-head" id="chatHead"></div>
+                        <div class="chat-messages" id="chatMessages"></div>
+                        <div id="chatInputArea" class="chat-input-area">
+                            <div id="adminImgPreviewBar" style="display:none;padding:.5rem .875rem 0;"></div>
+                            <div class="chat-input-row">
+                                <label class="img-upload-btn" title="发送图片">
+                                    <i data-lucide="image"></i>
+                                    <input type="file" accept="image/*" style="display:none;" id="adminImgInput" onchange="handleAdminImg(this)">
+                                </label>
+                                <textarea class="chat-textarea" id="chatInput" placeholder="回复用户… (Enter发送)" rows="1"
+                                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();replyConv();}"></textarea>
+                                <button class="chat-send-btn" onclick="replyConv()" id="sendBtn"><i data-lucide="send"></i></button>
+                            </div>
+                        </div>
+                        <div id="chatClosedNotice" class="chat-closed-notice" style="display:none;">对话已关闭</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主动发起对话弹窗 -->
+    <div class="modal-overlay" id="startModal" onclick="if(event.target===this)closeStartModal()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span class="modal-title">向用户发起对话</span>
+                <button class="modal-close" onclick="closeStartModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="modal-label">选择用户</label>
+                    <div style="position:relative;">
+                        <input class="modal-input" id="startUserSearch" type="text" placeholder="搜索用户名或邮箱…" oninput="filterStartUsers()" autocomplete="off">
+                        <div id="startUserDropdown" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;background:rgba(8,15,31,.99);border:1px solid var(--border-color);border-radius:var(--radius-md);max-height:180px;overflow-y:auto;z-index:200;box-shadow:0 12px 32px rgba(0,0,0,.6);"></div>
+                    </div>
+                    <div id="startSelectedUser" style="display:none;margin-top:.5rem;padding:.5rem .875rem;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:var(--radius-sm);font-size:.85rem;color:var(--text-primary);display:none;align-items:center;justify-content:space-between;">
+                        <span id="startSelectedText"></span>
+                        <button onclick="clearStartUser()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;"><i data-lucide="x" style="width:12px;height:12px;"></i></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="modal-label">主题</label>
+                    <input class="modal-input" id="startSubject" type="text" placeholder="对话主题…" maxlength="100">
+                </div>
+                <div>
+                    <label class="modal-label">消息内容</label>
+                    <textarea class="modal-input modal-textarea" id="startBody" placeholder="消息内容…"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost btn-sm" onclick="closeStartModal()">取消</button>
+                <button class="btn btn-primary btn-sm" onclick="startConversation()" id="startSendBtn">
+                    <i data-lucide="send"></i><span>发送</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+    lucide.createIcons();
+    let currentConvId=null, conversations=[], pollTimer=null;
+
+    function switchTab(t){
+        document.getElementById('panelBc').classList.toggle('active', t==='bc');
+        document.getElementById('panelCv').classList.toggle('active', t==='cv');
+        document.getElementById('tabBC').classList.toggle('active', t==='bc');
+        document.getElementById('tabCV').classList.toggle('active', t==='cv');
+        if(t==='bc') loadBroadcasts();
+        if(t==='cv') loadConversations();
+    }
+
+    function toast(msg,type='ok'){
+        let box=document.getElementById('_tb');
+        if(!box){box=document.createElement('div');box.id='_tb';box.style='position:fixed;top:70px;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';document.body.appendChild(box);}
+        const el=document.createElement('div');
+        el.style=`padding:.7rem 1rem;background:rgba(8,15,31,.97);border-radius:8px;font-size:.85rem;font-weight:500;display:flex;align-items:center;gap:8px;border-left:3px solid;max-width:300px;box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:all;border-color:${type==='ok'?'var(--success-color)':'var(--danger-color)'};color:${type==='ok'?'#4cffaa':'#ff6b8a'};`;
+        el.textContent=msg;box.appendChild(el);
+        setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},3500);
+    }
+
+    // ── 广播 ──
+    async function loadBroadcasts(){
+        const r=await fetch('/api/admin/broadcasts',{credentials:'include'});
+        const d=await r.json();
+        const el=document.getElementById('bcList');
+        if(!d.broadcasts?.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--text-muted);">暂无公告</div>';return;}
+        el.innerHTML=d.broadcasts.map(b=>`
+            <div class="bc-item">
+                <div class="bc-body">
+                    <div class="bc-title">${escHtml(b.title)}</div>
+                    <div class="bc-preview">${escHtml(b.body.replace(/<[^>]+>/g,''))}</div>
+                    <div class="bc-meta"><span>${b.admin_name||'管理员'}</span><span>${fmtTime(b.created_at)}</span></div>
+                </div>
+                <div class="bc-actions">
+                    <button class="btn btn-ghost btn-sm" style="color:var(--danger-color);" onclick="deleteBroadcast(${b.id},this)" title="删除">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+            </div>`).join('');
+        lucide.createIcons();
+    }
+
+    // ── 富文本编辑器辅助函数 ──
+    function rteCommand(cmd, value) {
+        document.getElementById('bcBody').focus();
+        document.execCommand(cmd, false, value || null);
+    }
+    function rteSize(px) {
+        // execCommand fontSize 只支持1-7，改用 span 包裹
+        document.getElementById('bcBody').focus();
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed) return;
+        const range = sel.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style.fontSize = px;
+        try { range.surroundContents(span); } catch(e) {
+            // 跨多节点时降级
+            const frag = range.extractContents();
+            span.appendChild(frag);
+            range.insertNode(span);
+        }
+    }
+    function rteInsertLink() {
+        const url = prompt('请输入链接地址：', 'https://');
+        if (url) {
+            document.getElementById('bcBody').focus();
+            document.execCommand('createLink', false, url);
+            // 让链接在新标签打开
+            const anchors = document.getElementById('bcBody').querySelectorAll('a:not([target])');
+            anchors.forEach(a => a.target = '_blank');
+        }
+    }
+    function rteInsertImage() {
+        const url = prompt('请输入图片地址（URL）：', 'https://');
+        if (url) {
+            document.getElementById('bcBody').focus();
+            document.execCommand('insertImage', false, url);
+        }
+    }
+    function rteUploadLocalImage(input) {
+        const file = input.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) { toast('图片不能超过 3MB', 'err'); input.value=''; return; }
+        const reader = new FileReader();
+        reader.onload = e => {
+            const editor = document.getElementById('bcBody');
+            editor.focus();
+            // 插入带进度感的图片（直接 base64）
+            document.execCommand('insertImage', false, e.target.result);
+            // 给刚插入的图片加样式
+            const imgs = editor.querySelectorAll('img:not([data-rte-done])');
+            imgs.forEach(img => {
+                img.style.maxWidth = '100%';
+                img.style.borderRadius = '6px';
+                img.style.margin = '6px 0';
+                img.dataset.rteDone = '1';
+            });
+            input.value = '';
+            toast('图片已插入', 'ok');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function publishBroadcast(){
+        const title=document.getElementById('bcTitle').value.trim();
+        const bodyEl=document.getElementById('bcBody');
+        const body=bodyEl.innerHTML.trim();
+        if(!title||!body||body==='<br>'||body===''){toast('标题和内容不能为空','err');return;}
+        const btn=document.getElementById('bcSendBtn');
+        btn.disabled=true;
+        const span=btn.querySelector('span');if(span)span.textContent='发布中…';
+        try{
+            const r=await fetch('/api/admin/broadcasts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,body})});
+            const d=await r.json();
+            if(r.ok){toast(d.message||'广播已发布');document.getElementById('bcTitle').value='';bodyEl.innerHTML='';loadBroadcasts();}
+            else toast(d.detail||'发布失败','err');
+        }catch{toast('网络错误','err');}
+        finally{btn.disabled=false;if(span)span.textContent='发布广播';}
+    }
+
+    async function deleteBroadcast(id,btn){
+        if(!confirm('确定删除此广播？'))return;
+        btn.disabled=true;
+        const r=await fetch(`/api/admin/broadcasts/${id}`,{method:'DELETE',credentials:'include'});
+        if(r.ok){btn.closest('.bc-item').style.opacity='0';btn.closest('.bc-item').style.transition='opacity .3s';setTimeout(()=>loadBroadcasts(),300);toast('已删除');}
+        else{toast('删除失败','err');btn.disabled=false;}
+    }
+
+    // ── 对话 ──
+    async function loadConversations(){
+        const r=await fetch('/api/admin/conversations',{credentials:'include'});
+        const d=await r.json();
+        conversations=d.conversations||[];
+        renderConvList();
+        const total=conversations.reduce((s,c)=>s+(c.unread||0),0);
+        const badge=document.getElementById('adminUnreadBadge');
+        if(total>0){badge.textContent=total>9?'9+':total;badge.style.display='inline-block';}
+        else badge.style.display='none';
+    }
+
+    function renderConvList(){
+        const el=document.getElementById('convList');
+        if(!conversations.length){el.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.825rem;">暂无对话</div>';return;}
+        el.innerHTML=conversations.map(c=>`
+            <div class="conv-item${currentConvId===c.id?' active':''}" onclick="openConv(${c.id})">
+                <div class="conv-item-top">
+                    <span class="conv-user">${escHtml(c.user_name||'用户')}</span>
+                    <span class="conv-time">${fmtTime(c.updated_at)}</span>
+                </div>
+                <div class="conv-subject">${escHtml(c.subject)}</div>
+                <div class="conv-preview">${escHtml(c.last_msg||'')}</div>
+                <div class="conv-badges">
+                    ${c.unread>0?`<span class="unread-badge">${c.unread}</span>`:''}
+                    ${c.status==='closed'?'<span class="closed-tag">已关闭</span>':''}
+                </div>
+            </div>`).join('');
+        lucide.createIcons();
+    }
+
+    async function openConv(cid){
+        currentConvId=cid;
+        renderConvList();
+        const conv=conversations.find(c=>c.id===cid);
+        if(!conv) return;
+        document.getElementById('chatEmpty').style.display='none';
+        const cc=document.getElementById('chatContent');
+        cc.style.display='flex';
+        const initial=conv.user_name?.charAt(0)?.toUpperCase()||'U';
+        document.getElementById('chatHead').innerHTML=`
+            <div class="chat-head-avatar">${initial}</div>
+            <div class="chat-head-info">
+                <div class="chat-head-name">${escHtml(conv.user_name||'用户')} <span style="font-size:.72rem;color:var(--text-muted);font-weight:400;">&lt;${escHtml(conv.user_email||'')}&gt;</span></div>
+                <div class="chat-head-sub">${escHtml(conv.subject)}</div>
+            </div>
+            <div class="chat-head-actions">
+                ${conv.status==='open'?`<button class="btn btn-ghost btn-sm" onclick="closeConv(${cid})" title="关闭对话"><i data-lucide="x-circle"></i></button>`:'<span style="font-size:.72rem;color:var(--text-muted);">已关闭</span>'}
+            </div>`;
+        const inputArea=document.getElementById('chatInputArea');
+        const closedNotice=document.getElementById('chatClosedNotice');
+        if(conv.status==='closed'){inputArea.style.display='none';closedNotice.style.display='block';}
+        else{inputArea.style.display='block';closedNotice.style.display='none';}
+        lucide.createIcons();
+        await loadMessages(cid);
+        conv.unread=0;renderConvList();
+        clearInterval(pollTimer);
+        if(conv.status!=='closed') pollTimer=setInterval(()=>loadMessages(cid,true),6000);
+    }
+
+    async function loadMessages(cid,silent=false){
+        const r=await fetch(`/api/admin/conversations/${cid}/messages`,{credentials:'include'});
+        const d=await r.json();
+        if(d.success) renderMessages(d.messages);
+    }
+
+    function renderBody(body, retractedBody){
+        if(body==='[已撤回]'){
+            // 管理员视角：显示已撤回标记 + 原始内容折叠
+            if(retractedBody){
+                return `<span class="retract-msg">已撤回</span>
+                    <details class="retract-detail">
+                        <summary>查看原内容</summary>
+                        <div class="retract-original">${renderParts(retractedBody)}</div>
+                    </details>`;
+            }
+            return '<span class="retract-msg">已撤回</span>';
+        }
+        return renderParts(body);
+    }
+
+    function renderParts(body){
+        const parts = body.split(/\[IMG\]([\s\S]*?)\[\/IMG\]/);
+        return parts.map((p, i) => {
+            if(i % 2 === 1) return `<img class="chat-img" src="${p}" onclick="window.open(this.src)" loading="lazy" style="max-width:200px;max-height:180px;border-radius:6px;cursor:pointer;display:block;margin-top:4px;">`;
+            return escHtml(p).replace(/\n/g, '<br>');
+        }).join('');
+    }
+
+    function renderMessages(msgs){
+        const el=document.getElementById('chatMessages');
+        const wasAtBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;
+        el.innerHTML=msgs.map(m=>{
+            const isAdmin = m.sender_role==='admin';
+            const isRetracted = m.body==='[已撤回]';
+            // 只能撤回自己（管理员）发的消息，用户发的不能撤
+            const canRetract = isAdmin && !isRetracted;
+            const avatar = isAdmin ? '客服' : (m.sender_name?.charAt(0)||'U').toUpperCase();
+            return `<div class="msg-bubble-wrap ${isAdmin?'admin-msg':''}">
+                <div class="bubble-avatar ${isAdmin?'admin':'user'}">${avatar}</div>
+                <div class="bubble-col">
+                    <div class="bubble ${isAdmin?'admin':'user'}">${renderBody(m.body, m.retracted_body)}</div>
+                    <div class="bubble-meta">
+                        <span class="bubble-time">${isAdmin?'我':escHtml(m.sender_name||'用户')} · ${fmtTime(m.created_at)}</span>
+                        ${canRetract ? `<button class="retract-btn" onclick="retractMsg(${currentConvId},${m.id})">撤回</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        if(wasAtBottom||msgs.length<3) el.scrollTop=el.scrollHeight;
+    }
+
+    let adminPendingImg = null;
+    function handleAdminImg(input){
+        const file=input.files[0];if(!file)return;
+        const reader=new FileReader();
+        reader.onload=e=>{
+            adminPendingImg={file,dataUrl:e.target.result};
+            const bar=document.getElementById('adminImgPreviewBar');
+            bar.style.display='block';
+            bar.innerHTML=`<div class="img-preview-item"><img src="${e.target.result}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;"><button class="rm-btn" onclick="clearAdminImg()">×</button></div>`;
+        };
+        reader.readAsDataURL(file);input.value='';
+    }
+    function clearAdminImg(){ adminPendingImg=null;const b=document.getElementById('adminImgPreviewBar');b.style.display='none';b.innerHTML=''; }
+
+    async function replyConv(){
+        const input=document.getElementById('chatInput');
+        const text=input.value.trim();
+        if(!text&&!adminPendingImg) return;
+        if(!currentConvId) return;
+
+        let body=text;
+        if(adminPendingImg){
+            body=(text?text+'\n':'')+'[IMG]'+adminPendingImg.dataUrl+'[/IMG]';
+            clearAdminImg();
+        }
+        input.value='';
+        document.getElementById('sendBtn').focus();
+        input.focus();
+
+        const tempId='tmp_'+Date.now();
+        const msgEl=document.getElementById('chatMessages');
+        const isAtBottom=msgEl.scrollHeight-msgEl.scrollTop-msgEl.clientHeight<80;
+        const wrap=document.createElement('div');
+        wrap.className='msg-bubble-wrap admin-msg';
+        wrap.id=tempId;
+        wrap.dataset.pendingBody=body;
+
+        // 修复气泡消失问题：使用与正式消息一致的 HTML 结构
+        wrap.innerHTML=`
+            <div class="bubble-avatar admin">客服</div>
+            <div class="bubble-col">
+                <div class="bubble admin">${renderParts(body)}</div>
+                <div class="bubble-meta">
+                    <span class="bubble-time">发送中...</span>
+                    <div class="msg-status" id="${tempId}_status" style="margin-left:5px;">
+                        <div class="msg-status-spinner"></div>
+                    </div>
+                </div>
+            </div>`;
+
+        msgEl.appendChild(wrap);
+        if(isAtBottom) msgEl.scrollTop=msgEl.scrollHeight;
+
+        await _doAdminSend(tempId, body);
+    }
+
+    async function _doAdminSend(tempId, body){
+        try{
+            const r=await fetch(`/api/admin/conversations/${currentConvId}/reply`,{
+                method:'POST',credentials:'include',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({body})
+            });
+            const d=await r.json();
+            if(r.ok && d.success){
+                await loadMessages(currentConvId);
+                document.getElementById(tempId)?.remove();
+            } else {
+                _markAdminFailed(tempId, d.detail || '发送失败');
+            }
+        }catch(e){
+            _markAdminFailed(tempId, '网络错误');
+        }
+    }
+
+    function _markAdminFailed(tempId, reason){
+        const st=document.getElementById(tempId+'_status');
+        if(!st) return;
+
+        const wrap = document.getElementById(tempId);
+        if(wrap) {
+            const timeEl = wrap.querySelector('.bubble-time');
+            if(timeEl) timeEl.textContent = '发送失败';
+        }
+
+        const btn=document.createElement('div');
+        btn.className='msg-status-fail';
+        btn.title = reason + '，点击重试';
+        btn.textContent='!';
+        btn.onclick=()=>retryAdminMsg(tempId);
+        st.innerHTML='';
+        st.appendChild(btn);
+
+        toast(reason, 'err');
+    }
+
+    async function retryAdminMsg(tempId){
+        const wrap=document.getElementById(tempId);
+        if(!wrap) return;
+        const body=wrap.dataset.pendingBody;
+        const st=document.getElementById(tempId+'_status');
+        if(st){ st.innerHTML='<div class="msg-status-spinner"></div>'; }
+        await _doAdminSend(tempId, body);
+    }
+
+    async function retractMsg(cid,mid){
+        if(!confirm('确定撤回此消息？'))return;
+        const r=await fetch(`/api/conversations/${cid}/messages/${mid}`,{method:'DELETE',credentials:'include'});
+        if(r.ok) await loadMessages(cid);
+        else toast('撤回失败','err');
+    }
+
+    async function closeConv(cid){
+        if(!confirm('确定关闭此对话？关闭后用户无法继续发言。'))return;
+        const r=await fetch(`/api/admin/conversations/${cid}/close`,{method:'POST',credentials:'include'});
+        if(r.ok){toast('对话已关闭');await loadConversations();openConv(cid);}
+        else toast('操作失败','err');
+    }
+
+    function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function fmtTime(s){
+        if(!s)return '';
+        const d=new Date(s.includes('T')?s:s.replace(' ','T')+'Z');
+        const now=new Date(),diff=(now-d)/1000;
+        if(diff<60)return '刚刚';if(diff<3600)return Math.floor(diff/60)+'分钟前';
+        if(diff<86400)return Math.floor(diff/3600)+'小时前';
+        return d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+
+
+    // ── 主动发起对话 ──
+    let startSelectedUser = null;
+
+    function openStartModal(){
+        startSelectedUser=null;
+        document.getElementById('startUserSearch').value='';
+        document.getElementById('startSelectedUser').style.display='none';
+        document.getElementById('startSubject').value='';
+        document.getElementById('startBody').value='';
+        document.getElementById('startModal').classList.add('open');
+        lucide.createIcons();
+        setTimeout(()=>document.getElementById('startUserSearch').focus(),50);
+    }
+    function closeStartModal(){ document.getElementById('startModal').classList.remove('open'); }
+
+    async function filterStartUsers(){
+        const q=document.getElementById('startUserSearch').value.toLowerCase();
+        const dropdown=document.getElementById('startUserDropdown');
+        if(!q){dropdown.style.display='none';return;}
+        try{
+            const r=await fetch('/api/admin/users',{credentials:'include'});
+            const d=await r.json();
+            const users=(Array.isArray(d)?d:(d.users||[])).filter(u=>u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q));
+            if(!users.length){dropdown.innerHTML='<div style="padding:.75rem;color:var(--text-muted);font-size:.85rem;">无匹配用户</div>';dropdown.style.display='block';return;}
+            dropdown.innerHTML=users.slice(0,15).map(u=>`
+                <div class="user-option" onmousedown="selectStartUser(${u.id},'${escJs(u.name)}','${escJs(u.email)}')">
+                    <div class="user-option-name">${escHtml(u.name)}</div>
+                    <div class="user-option-email">${escHtml(u.email)}</div>
+                </div>`).join('');
+            dropdown.style.display='block';
+        }catch{}
+    }
+    function selectStartUser(id,name,email){
+        startSelectedUser={id,name,email};
+        document.getElementById('startUserDropdown').style.display='none';
+        document.getElementById('startUserSearch').value='';
+        const el=document.getElementById('startSelectedUser');
+        el.style.display='flex';
+        document.getElementById('startSelectedText').textContent=`${name} <${email}>`;
+        lucide.createIcons();
+    }
+    function clearStartUser(){
+        startSelectedUser=null;
+        document.getElementById('startSelectedUser').style.display='none';
+    }
+    async function startConversation(){
+        if(!startSelectedUser){toast('请选择用户','err');return;}
+        const subject=document.getElementById('startSubject').value.trim()||'管理员消息';
+        const body=document.getElementById('startBody').value.trim();
+        if(!body){toast('消息内容不能为空','err');return;}
+        const btn=document.getElementById('startSendBtn');btn.disabled=true;
+        const span=btn.querySelector('span');if(span)span.textContent='发送中…';
+        try{
+            const r=await fetch('/api/admin/conversations/start',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:startSelectedUser.id,subject,body})});
+            const d=await r.json();
+            if(r.ok){toast(d.message||'已发送');closeStartModal();await loadConversations();if(d.conversation_id)openConv(d.conversation_id);}
+            else toast(d.detail||'发送失败','err');
+        }catch{toast('网络错误','err');}
+        finally{btn.disabled=false;if(span)span.textContent='发送';}
+    }
+
+    function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+
+    // 初始化
+    loadBroadcasts();
+    // 未读数轮询
+    setInterval(async()=>{
+        const r=await fetch('/api/admin/conversations/unread-count',{credentials:'include'}).catch(()=>null);
+        if(r?.ok){const d=await r.json();const b=document.getElementById('adminUnreadBadge');if(d.count>0){b.textContent=d.count>9?'9+':d.count;b.style.display='inline-block';}else b.style.display='none';}
+    },15000);
+    </script>
+</body>
+</html>

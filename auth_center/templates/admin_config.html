@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>系统配置 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}" />
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        .config-management-container { max-width: 800px; margin: 0 auto; }
+        .config-section { margin-bottom: 32px; padding: 24px; border: 1px solid var(--border-color); border-radius: 8px; }
+        .config-section-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .form-group-inline { display: flex; gap: 16px; align-items: flex-end; }
+        .form-group-inline > div { flex: 1; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/admin" class="navbar-brand">🔐 管理控制台</a>
+            <div class="navbar-menu">
+                <a href="/account" class="navbar-link">账户管理</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="config-management-container">
+            <div class="card">
+                <h1 class="card-title">系统配置</h1>
+                <p class="card-subtitle">管理系统的核心配置，如注册白名单等。</p>
+
+                <!-- 注册白名单配置 -->
+                <div class="config-section">
+                    <div class="config-section-title">用户注册配置</div>
+                    <form id="registrationConfigForm" onsubmit="handleRegistrationConfigSubmit(event)">
+                        <div class="form-group">
+                            <label class="form-label" for="registration_emails">注册邮箱白名单 (逗号分隔)</label>
+                            <textarea id="registration_emails" name="emails" class="form-input" rows="4" placeholder="user1@example.com, user2@example.com"></textarea>
+                            <div class="form-hint">留空则禁用自主注册。填写邮箱列表则只允许列表中的邮箱注册。</div>
+                        </div>
+                        <div id="registrationConfigError" class="form-error"></div>
+                        <div id="registrationConfigMessage" class="form-success" style="display: none;"></div>
+                        <button type="submit" class="btn btn-primary mt-3">保存配置</button>
+                    </form>
+                </div>
+
+                <!-- 更多配置项可以在这里添加 -->
+
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script>
+        // 改进的 API 请求函数 (假设 common.js 中没有，或者需要更健壮的版本)
+        async function safeApiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                credentials: 'include'
+            });
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                throw new Error(`服务器返回非 JSON 响应 (${response.status}): ${responseText.substring(0, 100)}`);
+            }
+
+            if (!response.ok) {
+                const errorMessage = data.detail || data.message || `请求失败 (${response.status})`;
+                throw new Error(errorMessage);
+            }
+
+            return data;
+        }
+
+        // 1. 加载注册配置
+        async function loadRegistrationConfig() {
+            const errorEl = document.getElementById('registrationConfigError');
+            const emailEl = document.getElementById('registration_emails');
+            errorEl.textContent = '';
+
+            try {
+                const data = await safeApiRequest('/api/admin/config/registration');
+                if (data.emails === null) {
+                    emailEl.value = '';
+                    emailEl.placeholder = '自主注册已禁用';
+                } else {
+                    emailEl.value = data.emails;
+                }
+            } catch (error) {
+                errorEl.textContent = '加载注册配置失败: ' + error.message;
+            }
+        }
+
+        // 2. 提交注册配置
+        async function handleRegistrationConfigSubmit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const errorEl = document.getElementById('registrationConfigError');
+            const messageEl = document.getElementById('registrationConfigMessage');
+            errorEl.textContent = '';
+            messageEl.style.display = 'none';
+
+            const emails = form.elements['emails'].value;
+
+            try {
+                const data = await safeApiRequest('/api/admin/config/registration', {
+                    method: 'POST',
+                    body: JSON.stringify({ emails: emails })
+                });
+
+                messageEl.textContent = data.message;
+                messageEl.style.display = 'block';
+
+                // 重新加载以确保状态正确
+                loadRegistrationConfig();
+
+            } catch (error) {
+                errorEl.textContent = error.message;
+            }
+        }
+
+        // 初始化加载
+        document.addEventListener('DOMContentLoaded', loadRegistrationConfig);
+    </script>
+    <script>
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>

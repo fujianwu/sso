@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - SSO Platform</title>
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/lucide.js"></script>
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            background-color: var(--background-color);
+        }
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        .error-code {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+        .error-title {
+            font-size: 1.5rem;
+            color: var(--text-color);
+            margin-bottom: 15px;
+        }
+        .error-message {
+            color: var(--text-secondary-color);
+            margin-bottom: 30px;
+            max-width: 400px;
+        }
+        .btn-back {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .btn-back:hover {
+            background-color: var(--primary-dark-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <i data-lucide="shield-off" class="error-icon"></i>
+        <div class="error-code">{{ status_code }}</div>
+        <h1 class="error-title">{{ title }}</h1>
+        <p class="error-message">{{ message }}</p>
+        <a href="/" class="btn-back">
+            <i data-lucide="home" style="width: 16px; height: 16px; margin-right: 5px;"></i>
+            返回首页
+        </a>
+    </div>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

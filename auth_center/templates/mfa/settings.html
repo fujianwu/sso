@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA 安全设置 - {{ settings.SITE_NAME }}</title>
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <script src="/static/js/lucide.js"></script>
+    <script src="/static/js/common.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.06) 0%, transparent 40%);
+            animation: bgFloat 25s ease-in-out infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-2%, 2%); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        .breadcrumb a {
+            color: var(--primary-light);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--primary);
+        }
+
+        .mfa-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 24px;
+            padding: 0;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .card-header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: inherit;
+            clip-path: ellipse(60% 100% at 50% 100%);
+        }
+
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .header-icon svg {
+            width: 36px;
+            height: 36px;
+            color: white;
+        }
+
+        .card-header h1 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .card-header p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+        }
+
+        .card-body {
+            padding: 40px 30px 30px;
+        }
+
+        .status-banner {
+            padding: 20px 24px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .status-banner.enabled {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-banner.disabled {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-banner.enabled .status-icon {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .status-banner.disabled .status-icon {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+        }
+
+        .status-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .status-text h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .status-banner.enabled .status-text h3 {
+            color: var(--success);
+        }
+
+        .status-banner.disabled .status-text h3 {
+            color: var(--primary-light);
+        }
+
+        .status-text p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .option-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .option-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .option-card h4 svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-light);
+        }
+
+        .option-card p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .option-card .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .empty-icon svg {
+            width: 40px;
+            height: 40px;
+            color: var(--primary-light);
+        }
+
+        .empty-state h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: #94a3b8;
+            max-width: 400px;
+            margin: 0 auto 28px;
+            line-height: 1.6;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(8px);
+            padding: 20px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: white;
+        }
+
+        .modal-close svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .step-text {
+            font-weight: 600;
+            color: white;
+        }
+
+        .qr-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px dashed rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .qr-box img {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+
+        .secret-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 16px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 1rem;
+            color: #e2e8f0;
+            text-align: center;
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            word-break: break-all;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: 2px solid rgba(99, 102, 241, 0.2);
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.5em;
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.6);
+            color: white;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-actions .btn-full {
+            grid-column: 1 / -1;
+        }
+
+        /* 恢复码列表 */
+        .recovery-codes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .recovery-code {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            text-align: center;
+            color: #e2e8f0;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        @media (max-width: 640px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-banner {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .status-info {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/account">个人中心</a>
+            <i data-lucide="chevron-right" size="14"></i>
+            <span>多因素认证</span>
+        </div>
+
+        <div class="mfa-card">
+            <div class="card-header">
+                <div class="header-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <h1>多因素认证 (MFA)</h1>
+                <p>为您的账户添加额外的安全层，防止未经授权的访问</p>
+            </div>
+
+            <div class="card-body">
+                {% if mfa_enabled %}
+                <div class="status-banner enabled">
+                    <div class="status-info">
+                        <div class="status-icon">
+                            <i data-lucide="check-circle"></i>
+                        </div>
+                        <div class="status-text">
+                            <h3>MFA 已启用</h3>
+                            <p>您的账户目前处于最高安全级别保护中</p>
+                        </div>
+                    </div>
+                    <button id="disableMfaBtn" class="btn btn-danger">
+                        <i data-lucide="shield-off"></i>
+                        禁用 MFA
+                    </button>
+                </div>
+
+                <div class="options-grid">
+                    <div class="option-card">
+                        <h4>
+                            <i data-lucide="key"></i>
+                            恢复码
+                        </h4>
+                        <p>如果丢失验证设备，可以使用恢复码登录</p>
+                        <button id="viewRecoveryCodesBtn" class="btn btn-secondary">
+                            查看恢复码
+                        </button>
+                    </div>
+                    <div class="option-card">
+                        <h4>
+                            <i data-lucide="smartphone"></i>
+                            验证设备
+                        </h4>
+                        <p>当前绑定的验证器应用正在提供保护</p>
+                        <button id="changeDeviceBtn" class="btn btn-secondary">
+                            更换设备
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i data-lucide="lock"></i>
+                    </div>
+                    <h2>提升您的账户安全性</h2>
+                    <p>启用多因素认证后，即使他人获取了您的密码，也无法登录您的账户。</p>
+                    <button id="initMfaBtn" class="btn btn-primary" style="padding: 16px 40px; font-size: 1rem;">
+                        <i data-lucide="plus-circle"></i>
+                        立即配置 MFA
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 恢复码弹窗 -->
+    <div id="recoveryCodesModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>您的恢复码</h2>
+                <button class="modal-close" onclick="closeRecoveryModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">请将这些代码保存在安全的地方。每个代码只能使用一次。</p>
+                <div id="recoveryCodesList" class="recovery-codes-grid"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button onclick="copyRecoveryCodes()" class="btn btn-secondary" style="justify-content: center;">
+                        <i data-lucide="copy"></i> 复制全部
+                    </button>
+                    <button onclick="regenerateRecoveryCodes()" class="btn btn-danger" style="justify-content: center;">
+                        <i data-lucide="refresh-cw"></i> 重新生成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MFA 配置弹窗 -->
+    <div id="mfaModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>配置验证器</h2>
+                <button class="modal-close" onclick="closeMfaModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="mfaStep1">
+                    <div class="step-indicator">
+                        <div class="step-dot">1</div>
+                        <span class="step-text">绑定验证器应用</span>
+                    </div>
+
+                    <!-- iOS 扫码提示 -->
+                    <div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:0.82rem;color:#fbbf24;line-height:1.6;">
+                        📱 <strong>iPhone 用户注意：</strong>请勿用系统相机扫码（会直接跳到密码 App）。<br>
+                        请在 <strong>Microsoft Authenticator</strong> 或 <strong>Google Authenticator</strong> 应用内打开扫码功能后再扫描。
+                    </div>
+
+                    <!-- 二维码 -->
+                    <div class="qr-box">
+                        <img id="qrCodeImg" src="" alt="QR Code">
+                    </div>
+
+                    <!-- 用 deep link 按钮唤起 App 选择列表 -->
+                    <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+                        <button id="openAuthAppBtn" onclick="openInAuthApp()"
+                            style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;
+                                   padding:10px 14px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);
+                                   border-radius:10px;color:#818cf8;font-size:0.85rem;cursor:pointer;">
+                            📲 在 App 中打开
+                        </button>
+                        <button onclick="copyMfaSecret()"
+                            style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:8px;
+                                   padding:10px 14px;background:rgba(30,41,59,0.6);border:1px solid rgba(99,102,241,0.2);
+                                   border-radius:10px;color:#94a3b8;font-size:0.85rem;cursor:pointer;">
+                            📋 复制密钥
+                        </button>
+                    </div>
+
+                    <!-- 手动密钥（折叠展开） -->
+                    <details style="margin-bottom:18px;">
+                        <summary style="font-size:0.78rem;font-weight:600;color:#94a3b8;text-transform:uppercase;cursor:pointer;user-select:none;margin-bottom:8px;">
+                            手动输入密钥（点击展开）
+                        </summary>
+                        <div id="mfaSecret" class="secret-box" style="margin-top:8px;word-break:break-all;letter-spacing:2px;"></div>
+                        <p style="font-size:0.75rem;color:#64748b;margin-top:6px;">
+                            在任意 TOTP 验证器 App 中选择「手动输入」，粘贴上方密钥即可完成绑定。
+                        </p>
+                    </details>
+
+                    <!-- 隐藏字段存 otpauth URI，供 openInAuthApp 使用 -->
+                    <input type="hidden" id="mfaOtpauthUri" value="">
+
+                    <button onclick="showMfaStep2()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 16px;">
+                        已添加到验证器，下一步 →
+                    </button>
+                </div>
+
+                <div id="mfaStep2" style="display: none;">
+                    <div class="step-indicator">
+                        <div class="step-dot">2</div>
+                        <span class="step-text">验证码确认</span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">请输入验证器应用中生成的 6 位动态验证码：</p>
+                    <input type="text" id="verifyCode" maxlength="6" class="code-input" placeholder="000000">
+                    <div class="modal-actions">
+                        <button onclick="showMfaStep1()" class="btn btn-secondary" style="justify-content: center;">上一步</button>
+                        <button id="confirmEnableBtn" class="btn btn-primary" style="justify-content: center;">确认并启用</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const mfaModal = document.getElementById('mfaModal');
+        const recoveryModal = document.getElementById('recoveryCodesModal');
+        const initMfaBtn = document.getElementById('initMfaBtn');
+        const disableMfaBtn = document.getElementById('disableMfaBtn');
+        const viewRecoveryBtn = document.getElementById('viewRecoveryCodesBtn');
+        const changeDeviceBtn = document.getElementById('changeDeviceBtn');
+
+        if (viewRecoveryBtn) {
+            viewRecoveryBtn.onclick = async () => {
+                try {
+                    const response = await fetch('/api/mfa/recovery-codes');
+                    const data = await response.json();
+                    if (response.ok) {
+                        const list = document.getElementById('recoveryCodesList');
+                        list.innerHTML = data.recovery_codes.map(code =>
+                            `<div class="recovery-code">${code}</div>`
+                        ).join('');
+                        recoveryModal.classList.add('show');
+                        lucide.createIcons();
+                    } else {
+                        alert(data.detail || '获取失败');
+                    }
+                } catch (e) {
+                    alert('网络请求失败');
+                }
+            };
+        }
+
+        if (changeDeviceBtn) {
+            changeDeviceBtn.onclick = async () => {
+                if (!confirm('更换设备将先禁用当前的 MFA，然后重新开始配置流程。确定要继续吗？')) return;
+
+                try {
+                    const response = await fetch('/api/mfa/disable', { method: 'POST' });
+                    if (response.ok) {
+                        if (initMfaBtn) initMfaBtn.click();
+                        else location.reload();
+                    } else {
+                        const data = await response.json();
+                        alert(data.detail || '操作失败');
+                    }
+                } catch (e) {
+                    alert('网络请求失败');
+                }
+            };
+        }
+
+        function closeRecoveryModal() {
+            recoveryModal.classList.remove('show');
+        }
+
+        async function copyRecoveryCodes() {
+            const codes = Array.from(document.querySelectorAll('.recovery-code'))
+                .map(el => el.textContent).join('\n');
+            try {
+                await navigator.clipboard.writeText(codes);
+                alert('恢复码已复制到剪贴板');
+            } catch (err) {
+                alert('复制失败，请手动选择复制');
+            }
+        }
+
+        async function regenerateRecoveryCodes() {
+            if (!confirm('重新生成将作废当前的恢复码。确定要继续吗？')) return;
+            try {
+                const response = await fetch('/api/mfa/recovery-codes/regenerate', { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    const list = document.getElementById('recoveryCodesList');
+                    list.innerHTML = data.recovery_codes.map(code =>
+                        `<div class="recovery-code">${code}</div>`
+                    ).join('');
+                    alert('恢复码已重新生成');
+                } else {
+                    alert(data.detail || '生成失败');
+                }
+            } catch (e) {
+                alert('网络请求失败');
+            }
+        }
+
+        if (initMfaBtn) {
+            initMfaBtn.onclick = async () => {
+                const originalContent = initMfaBtn.innerHTML;
+                initMfaBtn.disabled = true;
+                initMfaBtn.innerHTML = '<span class="loading-spinner"></span> <span>初始化中...</span>';
+                lucide.createIcons();
+
+                try {
+                    const response = await fetch('/api/mfa/enable/init', { method: 'POST' });
+                    const data = await response.json();
+                    if (response.ok) {
+                        document.getElementById('qrCodeImg').src = data.qr_code;
+                        document.getElementById('mfaSecret').textContent = data.secret;
+                        // 保存 otpauth URI 供「在 App 中打开」按钮使用
+                        const otpauthUri = `otpauth://totp/${encodeURIComponent(data.issuer)}:${encodeURIComponent(data.account)}?secret=${data.secret}&issuer=${encodeURIComponent(data.issuer)}`;
+                        document.getElementById('mfaOtpauthUri').value = otpauthUri;
+                        mfaModal.classList.add('show');
+                    } else {
+                        alert(data.detail || '初始化失败');
+                    }
+                } catch (e) {
+                    alert('网络请求失败');
+                } finally {
+                    initMfaBtn.disabled = false;
+                    initMfaBtn.innerHTML = originalContent;
+                    lucide.createIcons();
+                }
+            };
+        }
+
+        if (disableMfaBtn) {
+            disableMfaBtn.onclick = async () => {
+                if (!confirm('确定要禁用 MFA 吗？这会降低您的账户安全性。')) return;
+
+                disableMfaBtn.disabled = true;
+                try {
+                    const response = await fetch('/api/mfa/disable', { method: 'POST' });
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        const data = await response.json();
+                        alert(data.detail || '操作失败');
+                    }
+                } catch (e) {
+                    alert('网络请求失败');
+                } finally {
+                    disableMfaBtn.disabled = false;
+                }
+            };
+        }
+
+        function closeMfaModal() {
+            mfaModal.classList.remove('show');
+        }
+
+        /**
+         * 通过 window.location 跳转 otpauth:// deep link。
+         * iOS 上会弹出 App 选择列表（Microsoft Authenticator / Google Authenticator 等），
+         * 而不是直接跳进密码 App，因为这是用户主动点击触发的，系统会给出选择。
+         */
+        function openInAuthApp() {
+            const uri = document.getElementById('mfaOtpauthUri').value;
+            if (!uri) { alert('请先初始化 MFA 设置'); return; }
+            window.location.href = uri;
+        }
+
+        async function copyMfaSecret() {
+            const secret = document.getElementById('mfaSecret').textContent.trim();
+            if (!secret) { alert('请先初始化 MFA 设置'); return; }
+            try {
+                await navigator.clipboard.writeText(secret);
+                const btn = event.currentTarget;
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ 已复制';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            } catch {
+                // 降级：选中文本
+                const el = document.getElementById('mfaSecret');
+                const range = document.createRange();
+                range.selectNodeContents(el);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                alert('请手动复制已选中的密钥');
+            }
+        }
+
+        function showMfaStep2() {
+            document.getElementById('mfaStep1').style.display = 'none';
+            document.getElementById('mfaStep2').style.display = 'block';
+        }
+
+        function showMfaStep1() {
+            document.getElementById('mfaStep2').style.display = 'none';
+            document.getElementById('mfaStep1').style.display = 'block';
+        }
+
+        document.getElementById('confirmEnableBtn').onclick = async () => {
+            const code = document.getElementById('verifyCode').value;
+            if (code.length !== 6) {
+                alert('请输入 6 位验证码');
+                return;
+            }
+
+            const btn = document.getElementById('confirmEnableBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 验证中...';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/api/mfa/enable/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert(data.detail || '验证失败');
+                }
+            } catch (e) {
+                alert('网络请求失败');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '确认并启用';
+                lucide.createIcons();
+            }
+        };
+
+        // 初始化样式
+        initCustomStyles();
+    </script>
+</body>
+</html>

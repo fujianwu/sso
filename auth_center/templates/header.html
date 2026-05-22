@@ -1,0 +1,103 @@
+<nav class="navbar">
+    <div class="navbar-content">
+        <a href="/" class="navbar-brand">
+            <span class="navbar-brand-icon">
+                <i data-lucide="shield-check"></i>
+            </span>
+            <span>SSO 认证</span>
+        </a>
+
+        <ul class="navbar-menu">
+            <li class="navbar-menu-item">
+                <a href="/" class="navbar-menu-link">
+                    <i data-lucide="home"></i>
+                    首页
+                </a>
+            </li>
+            <li class="navbar-menu-item">
+                <a href="/docs" class="navbar-menu-link">
+                    <i data-lucide="book-open"></i>
+                    文档
+                </a>
+            </li>
+            <li class="navbar-menu-item">
+                <a href="/api" class="navbar-menu-link">
+                    <i data-lucide="code-2"></i>
+                    API
+                </a>
+            </li>
+            <li class="navbar-menu-item">
+                <a href="/support" class="navbar-menu-link">
+                    <i data-lucide="headphones"></i>
+                    支持
+                </a>
+            </li>
+            <li class="navbar-menu-item">
+                <a href="/about" class="navbar-menu-link">
+                    <i data-lucide="info"></i>
+                    关于
+                </a>
+            </li>
+        </ul>
+
+        <div class="navbar-actions">
+            {% if current_user %}
+            {% if current_user.is_admin %}
+            <a href="/admin" class="btn btn-nav btn-ghost" style="color: var(--warning-color);">
+                <i data-lucide="settings"></i>
+                管理后台
+            </a>
+            {% endif %}
+            <a href="/inbox" class="btn btn-nav btn-ghost" id="inboxNavBtn" title="收件箱" style="position:relative;">
+                <i data-lucide="inbox"></i>
+                <span id="headerUnreadBadge" style="display:none;position:absolute;top:-3px;right:-3px;background:var(--primary-color);color:#000;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;"></span>
+            </a>
+            <a href="/account" class="btn btn-nav btn-secondary">
+                <i data-lucide="user"></i>
+                {{ current_user.name }}
+            </a>
+            <a href="/logout" class="btn btn-nav btn-ghost">
+                <i data-lucide="log-out"></i>
+                登出
+            </a>
+            {% else %}
+            <a href="/login" class="btn btn-nav btn-secondary">
+                <i data-lucide="log-in"></i>
+                登录
+            </a>
+            <a href="/register" class="btn btn-nav btn-primary">
+                <i data-lucide="user-plus"></i>
+                注册
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+<script>
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    // 轮询收件箱未读数
+    if (document.getElementById('headerUnreadBadge')) {
+        async function pollUnread() {
+            try {
+                const r = await fetch('/api/inbox/unread-count', { credentials: 'include' });
+                if (r.ok) {
+                    const d = await r.json();
+                    const badge = document.getElementById('headerUnreadBadge');
+                    if (badge) {
+                        if (d.count > 0) {
+                            badge.textContent = d.count > 9 ? '9+' : d.count;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+        pollUnread();
+        setInterval(pollUnread, 60000);
+    }
+</script>

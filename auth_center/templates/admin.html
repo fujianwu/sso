@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>管理员后台 - SSO 认证中心</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modern.css') }}" />
+    <script src="{{ url_for('static', path='/js/lucide.js') }}"></script>
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+        .admin-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .admin-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .admin-card-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .admin-card-icon i { width: 22px; height: 22px; }
+        .card-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--danger-color, #ef4444);
+            color: #fff;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            border: 2px solid var(--bg-primary, #0a0e27);
+        }
+        .admin-card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .admin-card-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        .admin-card-link {
+            display: inline-block;
+            color: var(--primary-color);
+            font-weight: 500;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: border-bottom 0.2s;
+        }
+        .admin-card-link:hover {
+            border-bottom-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/" class="navbar-brand">🔐 SSO 认证中心 - 管理员后台</a>
+            <div class="navbar-menu">
+                <a href="/account" class="navbar-link">账户管理</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card" style="max-width: 1200px;">
+            <h1 class="card-title">管理员控制台</h1>
+            <p class="card-subtitle">欢迎,{{ admin_user.name }} ({{ admin_user.email }})。请选择要管理的功能模块。</p>
+
+            <div class="admin-grid">
+                <!-- 用户管理 -->
+                <a href="/admin/users" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="users"></i></div>
+                        <div class="admin-card-title">用户管理</div>
+                        <div class="admin-card-description">查看、添加、编辑、删除用户，以及批量导入用户数据。</div>
+                    </div>
+                    <span class="admin-card-link">进入用户管理 →</span>
+                </a>
+
+                <!-- 应用管理 -->
+                <a href="/admin/apps" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="layout-grid"></i></div>
+                        <div class="admin-card-title">应用管理</div>
+                        <div class="admin-card-description">注册和管理接入 SSO 的应用，获取 Client ID 和 Secret。</div>
+                    </div>
+                    <span class="admin-card-link">进入应用管理 →</span>
+                </a>
+
+                <!-- 字段管理 -->
+                <a href="/admin/fields" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="database"></i></div>
+                        <div class="admin-card-title">用户字段管理</div>
+                        <div class="admin-card-description">自定义用户资料字段，实现灵活的用户信息扩展。</div>
+                    </div>
+                    <span class="admin-card-link">进入字段管理 →</span>
+                </a>
+
+                <!-- 白名单管理 -->
+                <a href="/admin/whitelist" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="shield-check"></i></div>
+                        <div class="admin-card-title">注册白名单</div>
+                        <div class="admin-card-description">管理允许自主注册的邮箱列表，支持文件导入和批量操作。</div>
+                    </div>
+                    <span class="admin-card-link">进入白名单管理 →</span>
+                </a>
+
+                <!-- 系统配置 -->
+                <a href="/admin/config" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="settings"></i></div>
+                        <div class="admin-card-title">系统配置</div>
+                        <div class="admin-card-description">管理系统级配置，如安全策略、邮件服务等（待扩展）。</div>
+                    </div>
+                    <span class="admin-card-link">进入系统配置 →</span>
+                </a>
+
+                <!-- 咨询消息管理 -->
+                <a href="/admin/messages" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="message-square"></i>{% if unread_messages_count and unread_messages_count > 0 %}<span class="card-badge">{{ unread_messages_count if unread_messages_count <= 99 else "99+" }}</span>{% endif %}</div>
+                        <div class="admin-card-title">咨询消息</div>
+                        <div class="admin-card-description">查看和处理用户通过联系我们表单提交的咨询消息。</div>
+                    </div>
+                    <span class="admin-card-link">进入消息管理 →</span>
+                </a>
+                <!-- 站内信 -->
+                <a href="/admin/inbox" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="inbox"></i>{% if admin_unread_inbox_count and admin_unread_inbox_count > 0 %}<span class="card-badge">{{ admin_unread_inbox_count if admin_unread_inbox_count <= 99 else "99+" }}</span>{% endif %}</div>
+                        <div class="admin-card-title">站内信</div>
+                        <div class="admin-card-description">向用户发送系统广播通知，管理用户对话消息。</div>
+                    </div>
+                    <span class="admin-card-link">进入站内信 →</span>
+                </a>
+
+                <!-- 审计日志 -->
+                <a href="/admin/audit-logs" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="scroll-text"></i></div>
+                        <div class="admin-card-title">审计日志</div>
+                        <div class="admin-card-description">查看用户登录记录、操作日志，监控系统安全状态。</div>
+                    </div>
+                    <span class="admin-card-link">进入审计日志 →</span>
+                </a>
+
+                <!-- Portal API Token -->
+                <a href="/admin/portal-tokens" class="admin-card">
+                    <div>
+                        <div class="admin-card-icon"><i data-lucide="key-round"></i></div>
+                        <div class="admin-card-title">Portal API Token</div>
+                        <div class="admin-card-description">生成供一站式门户平台调用的 API 凭据，实现一键 SSO 登录所有应用。</div>
+                    </div>
+                    <span class="admin-card-link">管理 Token →</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/common.js"></script>
+    <script>
+        // 初始化 Lucide 图标
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    </script>
+</body>
+</html>
