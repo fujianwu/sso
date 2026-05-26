@@ -357,6 +357,8 @@ async def switch_account(
             "username": target_user.get("username"),
         }
     })
+    # 在切换时也返回 token 头部，确保前端能更新 localStorage
+    resp.headers["X-Session-Token"] = target_session_token
     resp.set_cookie(
         key="session_token",
         value=target_session_token,

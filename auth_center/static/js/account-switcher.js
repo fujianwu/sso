@@ -73,21 +73,30 @@ const AccountSwitcher = {
         const fd = new FormData();
         fd.append('target_session_token', sessionToken);
         try {
+            // 关键：强制携带凭据并明确处理切换
             const resp = await fetch('/api/auth/switch-account', {
-                method: 'POST', body: fd, credentials: 'same-origin',
+                method: 'POST', body: fd, credentials: 'include',
             });
             if (resp.ok) {
                 const data = await resp.json();
+                const newToken = resp.headers.get('X-Session-Token') || sessionToken;
+
                 this.setCurrentUserId(userId);
-                if (data.user) {
-                    const accounts = this.getSavedAccounts();
-                    const idx = accounts.findIndex(a => a.user_id === userId);
-                    if (idx >= 0) {
-                        accounts[idx] = { ...accounts[idx], ...data.user, last_login: new Date().toISOString() };
-                        this._saveAccounts(accounts);
-                    }
+                const accounts = this.getSavedAccounts();
+                const idx = accounts.findIndex(a => String(a.user_id) === String(userId));
+
+                if (idx >= 0) {
+                    accounts[idx] = {
+                        ...accounts[idx],
+                        ...(data.user || {}),
+                        session_token: newToken,
+                        last_login: new Date().toISOString()
+                    };
+                    this._saveAccounts(accounts);
                 }
-                window.location.reload();
+
+                // 切换成功，刷新页面
+                window.location.href = '/account';
             } else {
                 const err = await resp.json().catch(() => ({}));
                 if (resp.status === 404 || resp.status === 401) {
@@ -106,15 +115,19 @@ const AccountSwitcher = {
      * 服务端清除 Cookie + session → 本地移除该账户 → 自动切换下一个或跳登录页。
      */
     async logoutCurrent() {
-        try {
-            await fetch('/api/auth/logout-current', { method: 'POST', credentials: 'same-origin' });
-        } catch { /* 网络失败也继续本地清理 */ }
-
         const currentId = this.getCurrentUserId();
-        if (currentId) this._removeAccountLocally(parseInt(currentId, 10));
+
+        try {
+            await fetch('/api/auth/logout-current', { method: 'POST', credentials: 'include' });
+        } catch (e) { console.error('Logout API failed', e); }
+
+        if (currentId) {
+            this._removeAccountLocally(currentId);
+        }
 
         const remaining = this.getSavedAccounts();
         if (remaining.length > 0) {
+            // 切换到第一个可用的账户
             await this.switchAccount(remaining[0].session_token, remaining[0].user_id);
         } else {
             window.location.href = '/login';

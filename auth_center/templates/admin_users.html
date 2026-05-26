@@ -348,6 +348,14 @@
                     <div class="form-hint" id="password_hint"></div>
                 </div>
 
+                <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="user_is_admin" name="is_admin" style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="user_is_admin" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--warning-color); font-size: 14px;">管理员权限</label>
+                    </div>
+                    <div class="form-hint" style="margin-top: 6px; margin-left: 28px;">授予用户访问管理后台和修改系统配置的权限。</div>
+                </div>
+
                 <div id="customFieldsArea"></div>
 
                 <div id="userFormError" class="form-error"></div>
@@ -462,6 +470,7 @@
                             <th style="width: 50px;">ID</th>
                             <th>邮箱</th>
                             <th>姓名</th>
+                            <th>角色</th>
                             <th>用户名</th>
                             <th>创建时间</th>
                             <th style="width: 150px;">操作</th>
@@ -472,11 +481,15 @@
 
             allUsers.forEach(user => {
                 const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
+                const roleHtml = user.is_admin
+                    ? '<span class="badge badge-primary" style="background: var(--warning-color); color: #000; font-size: 11px; padding: 2px 6px;">管理员</span>'
+                    : '<span class="badge badge-secondary" style="font-size: 11px; padding: 2px 6px;">普通用户</span>';
                 html += `
                     <tr>
                         <td>${escapeHtml(user.id)}</td>
                         <td>${escapeHtml(user.email)}</td>
                         <td>${escapeHtml(user.name)}</td>
+                        <td>${roleHtml}</td>
                         <td>${escapeHtml(user.username || '-')}</td>
                         <td>${createdAt}</td>
                         <td class="flex gap-1">
@@ -532,6 +545,7 @@
             document.getElementById('user_name').value = '';
             document.getElementById('user_username').value = '';
             document.getElementById('user_password').value = '';
+            document.getElementById('user_is_admin').checked = false;
             document.getElementById('user_password').required = true;
             document.getElementById('password_hint').textContent = '密码为必填项';
             document.getElementById('user_email').disabled = false;
@@ -568,6 +582,7 @@
                 document.getElementById('user_name').value = user.name;
                 document.getElementById('user_username').value = user.username || '';
                 document.getElementById('user_password').value = '';
+                document.getElementById('user_is_admin').checked = !!user.is_admin;
 
                 renderCustomFieldsForm(customData);
                 document.getElementById('userModal').classList.add('active');
@@ -595,6 +610,7 @@
             const name = form.name.value;
             const username = form.username.value || null;
             const password = form.password.value;
+            const isAdmin = form.is_admin.checked;
             const errorEl = document.getElementById('userFormError');
             errorEl.textContent = '';
 
@@ -618,6 +634,7 @@
                         name: name,
                         username: username,
                         password: password || undefined,
+                        is_admin: isAdmin,
                         custom_data: customData
                     });
                 } else {
@@ -628,6 +645,7 @@
                         name: name,
                         username: username,
                         password: password,
+                        is_admin: isAdmin,
                         custom_data: customData
                     });
                 }
