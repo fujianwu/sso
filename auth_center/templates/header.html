@@ -52,13 +52,15 @@
                 <i data-lucide="inbox"></i>
                 <span id="headerUnreadBadge" style="display:none;position:absolute;top:-3px;right:-3px;background:var(--primary-color);color:#000;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;"></span>
             </a>
-            <a href="/account" class="btn btn-nav btn-secondary">
+            <a href="/account" class="btn btn-nav btn-secondary" title="个人中心">
                 <i data-lucide="user"></i>
                 {{ current_user.name }}
             </a>
-            <a href="/logout" class="btn btn-nav btn-ghost">
+            <a href="/switch-account" class="btn btn-nav btn-ghost" title="切换账号">
+                <i data-lucide="users"></i>
+            </a>
+            <a href="/logout" class="btn btn-nav btn-ghost" title="注销">
                 <i data-lucide="log-out"></i>
-                登出
             </a>
             {% else %}
             <a href="/login" class="btn btn-nav btn-secondary">

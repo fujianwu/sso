@@ -496,6 +496,7 @@ async def get_admin_users(current_user: dict = Depends(require_admin)):
             "email": u["email"],
             "name": u["name"],
             "username": u.get("username"),
+            "is_admin": bool(u.get("is_admin")),
             "avatar_url": u.get("avatar_url"),
             "created_at": u["created_at"]
         }

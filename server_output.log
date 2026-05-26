@@ -64,3 +64,14 @@ INFO:     127.0.0.1:43410 - "GET /static/js/qrcode.min.js HTTP/1.1" 200 OK
 2026-05-26 02:17:03,923 - auth_center.main - WARNING - HTTP 303: /login?redirect_uri=/inbox - Path: /inbox
 INFO:     127.0.0.1:53444 - "GET /inbox HTTP/1.1" 303 See Other
 INFO:     127.0.0.1:53444 - "GET /login?redirect_uri=/inbox HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'auth_center/routers/admin.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-05-26 06:18:24,333 - auth_center.performance - INFO - Cache cleared
+INFO:     Application shutdown complete.
+INFO:     Finished server process [95714]
+[SECURITY] SECRET_KEY 未配置，已自动生成临时密钥（每次重启失效，仅供开发使用）。生产环境请设置 SECRET_KEY 环境变量。
+[SECURITY] REGISTRATION_SECRET 未配置，已自动生成临时值。
+INFO:     Started server process [126161]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
