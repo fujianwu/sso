@@ -87,9 +87,37 @@ class FastAPISSOClient:
         
         return response.json()
     
+    def get_user_info(self, access_token: str) -> dict:
+        """
+        使用 access_token 获取用户信息
+        
+        Args:
+            access_token: 访问令牌
+            
+        Returns:
+            用户信息字典
+        """
+        # 检查缓存
+        if access_token in self._user_cache:
+            return self._user_cache[access_token]
+        
+        userinfo_url = f"{self.auth_server}/oauth/userinfo"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(userinfo_url, headers=headers)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail=f"Failed to get user info: {response.text}")
+        
+        user = response.json()
+        
+        # 缓存用户信息
+        self._user_cache[access_token] = user
+        
+        return user
+
     def verify_token(self, access_token: str) -> dict:
         """
-        验证访问令牌
+        验证访问令牌（调用 get_user_info 获取用户信息）
         
         Args:
             access_token: 访问令牌
@@ -97,25 +125,7 @@ class FastAPISSOClient:
         Returns:
             用户信息
         """
-        # 检查缓存
-        if access_token in self._user_cache:
-            return self._user_cache[access_token]
-        
-        verify_url = f"{self.auth_server}/oauth/verify"
-        
-        data = {'access_token': access_token}
-        response = requests.post(verify_url, json=data)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        
-        result = response.json()
-        user = result.get('user')
-        
-        # 缓存用户信息
-        self._user_cache[access_token] = user
-        
-        return user
+        return self.get_user_info(access_token)
     
     async def get_current_user(self, request: Request) -> Optional[dict]:
         """
