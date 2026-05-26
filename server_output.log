@@ -1,0 +1,66 @@
+INFO:     Will watch for changes in these directories: ['/app']
+[SECURITY] SECRET_KEY 未配置，已自动生成临时密钥（每次重启失效，仅供开发使用）。生产环境请设置 SECRET_KEY 环境变量。
+[SECURITY] REGISTRATION_SECRET 未配置，已自动生成临时值。
+INFO:     Uvicorn running on http://0.0.0.0:8200 (Press CTRL+C to quit)
+INFO:     Started reloader process [95572] using StatReload
+======================================================================
+                    SSO 认证中心
+======================================================================
+运行模式: 开发模式（自动重载）
+----------------------------------------------------------------------
+访问地址: http://127.0.0.1:8200
+首页: http://127.0.0.1:8200/
+用户中心: http://127.0.0.1:8200/account
+管理后台: http://127.0.0.1:8200/admin
+API文档: http://127.0.0.1:8200/docs
+----------------------------------------------------------------------
+默认管理员: admin@sso.local / admin123456
+======================================================================
+
+✓ 服务器正在启动中...
+✓ 文件监控已启用，代码更改将自动重载
+✓ 按 Ctrl+C 停止服务器
+
+⚠ 注意: 服务器启动后会保持运行状态，这是正常的！
+  你可以在浏览器中访问上面的地址，服务器会在后台处理请求。
+
+======================================================================
+[SECURITY] SECRET_KEY 未配置，已自动生成临时密钥（每次重启失效，仅供开发使用）。生产环境请设置 SECRET_KEY 环境变量。
+[SECURITY] REGISTRATION_SECRET 未配置，已自动生成临时值。
+INFO:     Started server process [95714]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+============================================================
+SSO 认证中心已启动（增强版）
+============================================================
+服务器地址: http://127.0.0.1:8200
+首页: http://127.0.0.1:8200/
+用户中心: http://127.0.0.1:8200/account
+管理后台: http://127.0.0.1:8200/admin
+健康检查: http://127.0.0.1:8200/health
+============================================================
+新增功能:
+ - 手机验证码登录
+ - 多因素认证（MFA）
+ - 异常登录检测
+ - 会话管理
+ - 登录日志审计
+ - 性能监控
+============================================================
+INFO:     127.0.0.1:53440 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /static/js/lucide.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53440 - "GET /static/css/modern.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /static/fonts/Inter-Medium.woff2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53440 - "GET /static/fonts/Inter-SemiBold.woff2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53440 - "GET /static/fonts/Inter-Regular.woff2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /static/fonts/Inter-Bold.woff2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /static/js/account-switcher.js HTTP/1.1" 200 OK
+Session created successfully, ID: 174
+INFO:     127.0.0.1:53444 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /mfa/verify?redirect_uri=%2Faccount HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53444 - "GET /static/js/common.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43410 - "GET /static/js/qrcode.min.js HTTP/1.1" 200 OK
+2026-05-26 02:17:03,923 - auth_center.main - WARNING - HTTP 303: /login?redirect_uri=/inbox - Path: /inbox
+INFO:     127.0.0.1:53444 - "GET /inbox HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53444 - "GET /login?redirect_uri=/inbox HTTP/1.1" 200 OK

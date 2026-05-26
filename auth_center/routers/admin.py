@@ -518,6 +518,7 @@ async def add_user(
     password = data.get("password")
     name = data.get("name")
     username = data.get("username")
+    is_admin = data.get("is_admin", 0)
     custom_data = data.get("custom_data", {})
 
     if not email or not password or not name:
@@ -539,6 +540,9 @@ async def add_user(
 
     password_hash = hash_password(password)
     user_id = UserDB.create_user(email, password_hash, name, username=username)
+
+    if is_admin:
+        UserDB.update_user(user_id, is_admin=1)
 
     for field_key, field_value in custom_data.items():
         if field_value:
@@ -574,11 +578,14 @@ async def update_user(
     name = data.get("name")
     username = data.get("username")
     password = data.get("password")
+    is_admin = data.get("is_admin")
     custom_data = data.get("custom_data", {})
 
     update_fields = {}
     if name:
         update_fields["name"] = name
+    if is_admin is not None:
+        update_fields["is_admin"] = 1 if is_admin else 0
     if username is not None:
         existing = UserDB.get_user_by_username(username)
         if existing and existing["id"] != user_id:

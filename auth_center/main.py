@@ -77,6 +77,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["X-Session-Token", "X-Redirect-To"],
     max_age=3600,
 )
 # 性能监控中间件
@@ -311,7 +312,8 @@ async def logout_page(session_token: Optional[str] = Cookie(None)):
 async def switch_account(
     request: Request,
     target_session_token: str = Form(...),
-    current_user: dict = Depends(require_login),
+    # 移除 require_login，允许从未登录状态切换到已保存账户
+    current_user: Optional[dict] = Depends(get_current_user),
 ):
     """
     账户切换接口 —— 服务端换发 Cookie，安全切换到另一个已登录账户。
@@ -355,6 +357,8 @@ async def switch_account(
             "username": target_user.get("username"),
         }
     })
+    # 在切换时也返回 token 头部，确保前端能更新 localStorage
+    resp.headers["X-Session-Token"] = target_session_token
     resp.set_cookie(
         key="session_token",
         value=target_session_token,
@@ -370,7 +374,7 @@ async def switch_account(
 @app.post("/api/auth/logout-current")
 async def logout_current_account(
     request: Request,
-    current_user: dict = Depends(require_login),
+    current_user: Optional[dict] = Depends(get_current_user),
 ):
     """
     登出当前账户的 JSON API 版本（供 account-switcher.js 调用）。

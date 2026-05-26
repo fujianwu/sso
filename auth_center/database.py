@@ -601,7 +601,7 @@ class UserDB:
         set_clauses = []
         values = []
         for key, value in kwargs.items():
-            if key in ["email", "username", "name", "avatar_url", "password_hash", "phone"]:
+            if key in ["email", "username", "name", "avatar_url", "password_hash", "phone", "is_admin"]:
                 set_clauses.append(f"{key} = ?")
                 values.append(value)
 
